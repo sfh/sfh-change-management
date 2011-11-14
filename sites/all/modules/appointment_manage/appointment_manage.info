@@ -1,0 +1,7 @@
+; $Id$
+name = Appointment manage
+description = Admin appointment search tool + rating stylist functionality.
+package = other
+version = "6.x-1.0"
+core = 6.x
+dependencies[] = styleforhire

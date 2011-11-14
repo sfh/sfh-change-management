@@ -1,0 +1,11 @@
+#compare_stylists_container,
+#search_results .stylist,
+.compare_column {
+
+	display: none
+}
+
+.hiddenPhotos {
+
+	display: none
+}

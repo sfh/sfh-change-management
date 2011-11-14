@@ -1,0 +1,15 @@
+=== modified file 'uc_order/uc_order.module'
+--- uc_order/uc_order.module	2009-10-20 20:42:37 +0000
++++ uc_order/uc_order.module	2009-10-29 19:59:04 +0000
+@@ -1456,7 +1456,9 @@
+     $function = $module .'_order';
+     // $order must be passed by reference.
+     if (function_exists($function) && ($value = $function('total', $order, NULL))) {
+-      $total += $value;
++      if (is_numeric($value)) {
++        $total += $value;
++      }
+     }
+   }
+ 
+

@@ -1,0 +1,62 @@
+<?php
+/* module for displaying stacy's quotes on the right bottom of the screen
+*/
+/* implementation of hook_help()
+*/
+function findStylistText_help($path, $arg){
+	if($path =='admin/help#findStylistText'){
+		$txt = 'Subu says: This module displays just the Text on the navigation bar after all the menu items';
+		return '<p>'.t($txt).'</p>';
+	}
+}
+
+/* implementation of hook_block()
+*/
+function findStylistText_block($op='list', $delta=0, $edit=array()){
+switch($op){
+	case 'list':
+		$blocks[0]['info'] = t('Stylist Text');
+		return $blocks;
+	case 'view':
+		$item = _findStylistText_get_quote();
+		if(!empty($item)){
+			$content = theme('findStylistText_quote');
+			/*$blocks['subject'] = t('findStylistText sublject');*//* this displays the subject which i dont need now */
+			$blocks['content'] = $content;
+			return $blocks;
+		}
+	}
+}
+
+/* internal function to retrieve the quote. */
+function _findStylistText_get_quote(){
+	$quote = "Hi I am Stacy. Early bird catches the worm.";
+	return $quote;
+}
+
+/* implementation of the hook_theme */
+function findStylistText_theme(){
+ return array(
+	'findStylistText_quote' => array(
+		'arguments' => array('text' => NULL),
+		),
+	);
+}
+
+/* theme function for theming quotes
+@param $text - the quote content
+@return
+and html themed string
+*/
+function theme_findStylistText_quote($text){
+/* subu - the below 3 lines is to add the css file to the theme */
+$module_path = drupal_get_path('module','findStylistText');
+$full_path = $module_path.'/findStylistText.css';
+$js_path = $module_path.'/findStylistText.js';
+drupal_add_css($full_path);
+drupal_add_js($js_path);
+
+$output =	'<div id="findStylist-text"><a href="#">Find A Stylist</a></div>';
+return $output;
+}
+

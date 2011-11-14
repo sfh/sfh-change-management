@@ -1,0 +1,9 @@
+
+3/13/2009
+- Added Workflow integration
+- Fixed a bug that prevented certificates from being inserted (bad $node type)
+- Added "order_product_id" column to table
+- Added update function to .install for table column
+
+2/24/2009
+- Fixed a bug, involving the wrong variable $total (should have been $order_total) - caused the "Pay entire order with Gift Certificate" payment method to work, even if the certificates did not cover the entire order.

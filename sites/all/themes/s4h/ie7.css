@@ -1,0 +1,395 @@
+/* $Id: ie.css,v 1.2.2.3 2009/02/13 07:51:18 johnalbin Exp $ */
+
+/*
+ * IE CSS
+ *
+ * CSS targeted specifically for Internet Explorer for Windows.
+ *
+ * While building your theme, you should be aware that IE limits Drupal to 31
+ * stylesheets total. The work-around for the bug is to enable CSS aggregation
+ * under: admin / settings / performance.
+ *
+ * Properties starting with an underscore _ are for IE 5 and 6 only.
+ * Properties starting with head:first-child+body are for IE7 only.
+ * Properties with a child selector (>) or sibling selector (+) are for IE7 only.
+ *
+ */
+
+/*
+ * Layout CSS
+ */
+
+/** body **/
+  body
+  {
+    _text-align: center; /* 1st part of IE5/IE6quirks centering hack */
+  }
+
+  #page
+  {
+    _text-align: left; /* 2nd part of IE5/IE6quirks centering hack */
+  }
+
+/** main (container for everything else) **/
+  #main
+  {
+    _zoom: 1; /* Otherwise with a liquid layout, sidebars disappear when resizing the windows in IE6 */
+
+  }
+
+
+/** floating divs **/
+  #content,
+  #navbar,
+ /* #sidebar-left,*//* subu -removed the left sidebar as this is causing problems on the front page with stacy's logo*/
+ /* #sidebar-right*/
+  {
+    _display: inline; /* display inline or double your floated margin! [1] */
+    _overflow: hidden; /* in ie6, overflow auto is broken [2] and so is overflow visible [3] */
+    _overflow-y: visible;
+	left: 0px;
+	position:relative;
+	float:left;
+  }
+  body.front #sidebar-left{
+    position: relative;
+    left: -40px;
+    height: 400px;
+    width: 405px;
+  
+  }
+    #sidebar-right {
+    position: relative;
+    left: 0px;
+    top: 0px;
+    padding: 3px; 
+	/*margin-left: 400px; */
+
+    }
+
+#primary-ie7{
+		position: relative;
+		top: 0px;
+		width: 100%;
+		background: #000;
+		margin-right:0px; 
+		}/* subu added primary here */
+
+#primary-ie7 li {
+		display: block;
+		float: left;
+		padding: 1em 0;
+}
+#primary-ie7 ul, #primary-inner-ie7{
+    margin: 0 auto;
+    overflow: visible;
+    width: 630px;
+	position:relative;
+}
+
+#primary-ie7 li a{
+    border-right: 1px solid #8A8875;
+    color: #FFFFFF;
+    display: block;
+    font: bold 1em Arial,Helvetica,Verdana,sans-serif;
+    padding: 0 1em;
+    text-decoration: none;
+}
+
+#primary-front {
+        position: relative;
+        top: 0px;  /* this fixed the upward menu movement in IE . Pain in the butt. worked for 2 days */
+        /*margin-right: 12px;*/
+        width: 65%;
+        
+        }
+        
+body.front #logo-small {
+left:291px;
+margin:0 0;
+position:relative;
+top:-249px;
+width:113px;
+}
+
+/*
+ * Tabs CSS - IE 5 and 6 don't support PNGs with alpha transparency.
+ */
+
+  ul.primary li a,
+  ul.primary li a .tab,
+  ul.secondary li a,
+  ul.secondary li a .tab
+  {
+    _display: inline; /* Otherwise the blocks mistakenly get 100% width in IE5 */
+    _di\splay: inline-block; /* Otherwise the blocks mistakenly get 100% width in IE6 */
+    cursor: pointer;
+  }
+
+  ul.primary,
+  ul.secondary
+  {
+    _width: 100%; /* Otherwise IE5 treats the ul as floated */
+    _wi\dth: auto; /* Reset to auto width for IE6 */
+  }
+
+  ul.primary li a
+  {
+    _background: url(images/tab-left-ie6.png) no-repeat left -38px;
+  }
+
+  ul.primary li a .tab
+  {
+    _background: url(images/tab-right-ie6.png) no-repeat right -38px;
+  }
+
+  ul.primary li a:hover
+  {
+    _background: url(images/tab-left-ie6.png) no-repeat left -76px;
+  }
+
+  ul.primary li a:hover .tab
+  {
+    _background: url(images/tab-right-ie6.png) no-repeat right -76px;
+  }
+
+  ul.primary li.active a,
+  ul.primary li.active a:hover
+  {
+    _background: url(images/tab-left-ie6.png) no-repeat left 0;
+  }
+
+  ul.primary li.active a .tab,
+  ul.primary li.active a:hover .tab
+  {
+    _background: url(images/tab-right-ie6.png) no-repeat right 0;
+  }
+
+/*
+ * Messages - IE 5 and 6 don't support PNGs with alpha transparency.
+ */
+
+  div.messages, /* Important messages (status, warning, and error) for the user */
+  div.status,
+  div.warning,
+  div.error
+  {
+    _background-image: url(images/messages-status-ie6.png);
+  }
+
+  div.warning /* Medium priority messages */
+  {
+    _background-image: url(images/messages-warning-ie6.png);
+  }
+
+  div.error /* High priority messages. See also the .error declaration below. */
+  {
+    _background-image: url(images/messages-error-ie6.png);
+  }
+
+/** Drupal nodes **/
+  .node-unpublished .node-inner>*
+  {
+    position: relative; /* Otherwise these elements will appear below the "Unpublished" text. */
+  }
+
+/** Drupal admin tables **/
+  .section-admin #content tr.even th,
+  .section-admin #content tr.even td,
+  .section-admin #content tr.odd th,
+  .section-admin #content tr.odd td
+  {
+    border-bottom: 1px solid #ccc; /* IE doesn't display borders on table rows */
+  }
+
+/*
+ * REFERENCES
+ *
+
+1. http://www.positioniseverything.net/explorer/doubled-margin.html
+2. http://browservulsel.blogspot.com/2005/04/ie-overflow-auto-scrollbar-overlap.html
+3. http://www.howtocreate.co.uk/wrongWithIE/?chapter=overflow%3Avisible%3B
+
+ *
+ */
+
+
+/* ===============================================================
+	HyperArts additions
+=============================================================== */
+#header {
+	width: auto;
+	min-width:0px;
+	/*height: 100px;*/
+	/*background: #029bbb url(_img/header-bg.gif) repeat-x;*/ /*subu change */
+	/*background: #fff url(_img/header-bg.gif) repeat-x;*//*subu change */
+	}/* subu added to move the header up by few pixels - no change - should remove*/
+
+	#header-inner {
+	/*width: 1027px; */
+	margin: 0 auto;}/* subu added to move the header up by few pixels - no change - should remove*/
+
+#styleforhire-basic-search-form {
+    /*position:relative;
+    
+    top: -120px;*/
+   /* height: 40px;
+    width: 250px;*/
+    _display:inline-block;
+    _di\splay: inline-block;
+    overflow: visible;
+    padding: 2px;
+     }
+    
+#superdupernav-blocks { 
+/*background: url(_img/rounded-boxes.gif) left -65px no-repeat; */
+background: red left -65px no-repeat;
+height: 18px;}
+#supernav-blocks { 
+			height: 18px;/*subu added this - VERY IMPORTANT - Without this - the supernav bar(View cart, advanced search) will not sit on the primary menu*/ 
+			/*background: url(_img/rounded-boxes.gif) left top no-repeat;*/ /* will have to change the gif to remove the blue background*/
+			background: red left top no-repeat;
+			}
+/*#site-name { background: url(_img/rounded-boxes.gif) left -93px no-repeat; }
+#site-name a { background: url(logo.png) top left no-repeat; }*/
+/* subu remove - this fixed the bug - extra empty placefolder without an image was displayed and this fixed it
+subu - uncommenting both "#site-name and #site-name a" again to add this to it 
+subu - commented again*/
+body.front #main {
+	width: 100%;
+	position: relative;
+	top: 40px;
+	}
+body.front #main-inner { 
+
+	}
+
+body.front #content {
+}
+body.front #logo-wings {
+      background: none;
+}
+body.front #content-bottom {
+							position: relative;
+							top: -25px;
+							
+						}/* subu added this one to support ie*/
+
+#basic_search { font-size: 0; line-height: 0; }
+
+body.front #block-styleforhire-3 {
+position: relative;
+top: 20px;
+/*behavior: url(sites/all/themes/s4h/border-radius.htc);  applies rounded corners on IE - only works when border-radius property is not separated for each corner */
+}
+
+body.section-stylist div.introduction {
+/*background: #e3e0d6 url(_img/gray-rounded-corners-top.gif) left top no-repeat;*/
+}
+
+body.section-stylist div.case-studies {
+/*background: #e3e0d6 url(_img/gray-rounded-corners-btm.gif) left bottom no-repeat;*/
+border-bottom: 0px;
+}
+
+body.section-stylist div.group {
+}
+#mission {
+				position: relative; /* if i need to move content - i need to create positio:relative in the css */
+				top: -10px;
+		  	}
+#mission span.attrib {
+padding: 10px;
+/*margin-top: 25px;*/
+}
+
+#block-styleforhire-4 {
+width: 251px;
+right: 3px;
+}
+
+body.section-book-appointment div.myorder-content ul li span.label {
+	float: left;
+	}
+
+body.section-book-appointment div.myorder-content div.estimate table tr {
+	background: url(_img/mybox-line.gif) left bottom repeat-x;
+	}
+
+body.section-book-appointment div.myorder-content div.estimate table tr.total {
+	background: none;
+	}
+
+	body.section-dashboard #tabbed-interface div {
+	position: relative;
+	clear: both;
+	padding: 15px;
+	min-height: 400px;
+	margin: 0 auto 0;
+	_margin: -15px auto 0;
+	}
+
+
+#block-findStylistText-0{
+position: relative;
+top: -110px;
+left: -20px;
+}	
+
+#findStylist-text a{
+ /*   position: relative; 
+    
+    top: 0px;*/
+    color: white;
+    font-size: 1em;
+    font-weight: bold;
+    font-family: verdana;
+    }
+
+#findStylist-text a:hover {
+    color: #ccc;
+}
+
+#stacyquotes_Stylists-0 {
+   
+}
+#footer
+{
+	float:left;
+}
+#sidebar-right #edit-s-zip
+{
+	padding:6px 12px 0px 12px;
+	height:23px;
+}
+#sidebar-right #edit-s-zip-wrapper{ 
+	position: relative;
+    top: -145px;
+}
+
+#div-stylists-image, #div-about-image, #div-services-image{
+/*   background:url("_img/newones/leftedge/stacy-hands-hips.JPG") no-repeat scroll left top transparent;*/
+	position: relative;
+	top: 0px;
+	height:auto;
+}
+
+#cart-form-buttons .form-submit{
+margin: 0.5em 0.5em 0.5em 2em;
+}
+#stylist-dashboard{
+width:720px;
+}
+
+.gift-certificate-msg {
+    color: white;
+	background: black;
+    font-size: 12px;
+    position: relative;
+	text-align:center;
+    z-index: 100;
+	float: right;
+	width: 30%;
+	margin-right:100px;
+}
+

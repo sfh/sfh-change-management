@@ -1,0 +1,13 @@
+#findStylist-text a{
+/*	position: relative; 
+	left: 650px;
+	top: 100px;*/
+	color: white;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: verdana;
+	}
+
+#findStylist-text a:hover {
+	color: #ccc;
+}

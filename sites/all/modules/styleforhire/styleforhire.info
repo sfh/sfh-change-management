@@ -1,0 +1,14 @@
+
+name = Style For Hire
+description = Core Style for Hire Module
+package = other
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-07-02
+version = "6.x-1.0"
+core = "6.x"
+project = "style_for_hire"
+datestamp = "1246537502"
+dependencies[] = jquery_ui
+
+

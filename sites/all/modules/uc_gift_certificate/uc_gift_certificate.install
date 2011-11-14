@@ -1,0 +1,101 @@
+<?php
+function uc_gift_certificate_schema() {
+  $schema = array();
+
+  $schema ['uc_gift_certificates'] = array(
+    'description' => t('The list of gift certificates purchased by users.'),
+    'fields' => array(
+      'certificate_id' => array(
+        'description' => t('The certificate id.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'value' => array(
+        'description' => t('Gift certificate value.'),
+        'type' => 'numeric',
+        'precision' => 15,
+        'scale' => 3,
+        'not null' => TRUE,
+        'default' => 0.0,
+      ),
+      'user_id' => array(
+        'description' => t('The identifier of the user that has the certificate.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'order_id' => array(
+        'description' => t('The identifier of the order in which the certificate was purchased.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'purchaser_id' => array(
+        'description' => t('The identifier of the user who purchased the certificate.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'cert_code' => array(
+        'description' => t('Internally used to generate a certificate code.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'default' => NULL,
+      ),
+      'order_product_id' => array(
+        'description' => t('The identifier of the product in the order.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('certificate_id'),
+  );
+
+  return $schema;
+}
+
+function uc_gift_certificate_install() {
+  drupal_install_schema('uc_gift_certificate');
+  db_query("INSERT INTO {uc_attributes} (name, required, display) VALUES ('Recipient''s Email Address', 1, 0)");
+  db_query("INSERT INTO {uc_attributes} (name, required, display) VALUES ('Message To Recipient', 0, 0)");
+}
+
+function uc_gift_certificate_uninstall() {
+  drupal_uninstall_schema('uc_gift_certificate');
+  db_query("DELETE FROM {uc_attributes} WHERE uc_attributes.name = 'Recipient''s Email Address'");
+  db_query("DELETE FROM {uc_attributes} WHERE uc_attributes.name = 'Message To Recipient'");
+}
+
+/**
+ * #468706, Make titles more descriptive
+ */
+function uc_gift_certificate_update_6001() {
+  $ret = array();
+  db_change_field($ret, 'uc_gift_certificates', 'name', 'name', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''));
+  return $ret;
+}
+
+/**
+ * #473488, Removing Certificate Amount attribute
+ */
+function uc_gift_certificate_update_6002() {
+  db_query("DELETE FROM {uc_attributes} WHERE uc_attributes.name = 'Certificate Amount'");
+}
+/**
+ * #528574, Making recipient email address required
+ */
+function uc_gift_certificate_update_6003() {
+  db_query("UPDATE {uc_attributes} SET required=1 WHERE name LIKE 'Recipient''s Email Address'");
+}

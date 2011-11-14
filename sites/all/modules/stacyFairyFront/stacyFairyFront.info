@@ -1,0 +1,4 @@
+; $Id;
+name = stacy Fairy image on the front page
+description = Stacy's fairy image on the left side of the page
+core = 6.x

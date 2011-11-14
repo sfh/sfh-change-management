@@ -1,0 +1,60 @@
+<?php
+/* module for displaying stacy's quotes on the right bottom of the screen
+*/
+/* implementation of hook_help()
+*/
+function stacyImageLeftGifts_help($path, $arg){
+	if($path =='admin/help#stacyImageLeftGifts'){
+		$txt = 'Subu says: This module displays stacy\'s image on the left side in a block. ';
+		return '<p>'.t($txt).'</p>';
+	}
+}
+
+/* implementation of hook_block()
+*/
+function stacyImageLeftGifts_block($op='list', $delta=0, $edit=array()){
+switch($op){
+	case 'list':
+		$blocks[0]['info'] = t('Stacy\'s Image Gifts on the left');
+		return $blocks;
+	case 'view':
+			$content = theme('stacyImageLeftGifts_image');
+			/*$blocks['subject'] = t('Stacys image');*//* this displays the subject which i dont need now */
+			$blocks['content'] = $content;
+			return $blocks;
+
+	}
+}
+
+/*function stacyquotes_theme(){
+ return array(
+	'stacyquotes_quote' => array(
+		'arguments' => array('text' => NULL),
+		),
+	);
+}*/
+function stacyImageLeftGifts_theme(){
+ return array(
+	'stacyImageLeftGifts_image' => array(
+		'arguments' => array(),
+		),
+	);
+}
+
+/* theme function for theming quotes
+@param $text - stacy's image on the left side of the pages ( not the front page)
+@param $origin  - source 
+@return
+and html themed string
+*/
+function theme_stacyImageLeftGifts_image(){
+/* subu - the below 3 lines is to add the css file to the theme */
+    $module_path = drupal_get_path('module','stacyImageLeftGifts');
+    $full_path = $module_path.'/stacyImageLeftGifts.css';
+    drupal_add_css($full_path);
+
+    $output =	'<div id="stacyImageLeftGifts">'.
+	       		'<a href="/" title="Home"><img width="337" height="570" alt="" src="/sites/all/themes/s4h/_img/newones/leftedge/stacy-gifts-left.JPG" /></a>'.
+			    '</div>';
+    return $output;
+}

@@ -1,0 +1,4 @@
+; $Id;
+name = stacy's Image
+description = "Stacy's image on the left side of the page
+core = 6.x

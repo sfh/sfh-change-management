@@ -1,0 +1,97 @@
+<style type='text/css'>
+
+	body {
+		margin-top: 40px;
+		text-align: center;
+		font-size: 14px;
+		font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+		}
+
+	#wrap {
+		width: 1100px;
+		margin: 0 auto;
+		}
+
+	#external-events {
+		float: left;
+		width: 180px;
+		padding: 0 10px;
+		border: 1px solid #ccc;
+		background: #eee;
+		text-align: left;
+		position: relative;
+		top: 41px;
+		width:230px;
+		}
+
+	#external-events h4 {
+		font-size: 14px;
+		margin-top: 0;
+		padding-top: 1em;
+		font-weight: normal;
+		margin-bottom:0;
+		}
+
+	.external-event { /* try to mimick the look of a real event */
+		margin: 10px 0;
+		padding: 2px 4px;
+		background: red;
+		color: #fff;
+		font-size: .85em;
+		cursor: pointer;
+		}
+
+	#external-events p {
+		margin: 1.5em 0;
+		font-size: 11px;
+		color: #666;
+		}
+
+	#external-events p input {
+		margin: 0;
+		vertical-align: middle;
+		}
+
+	#calendar {
+		float: right;
+		width: 700px;
+		}
+	.fc-event,
+	.fc-agenda .fc-event-time,
+	.fc-event a {
+		background-color: red; /* background color */
+		border-color: black;     /* border color */
+		color: black;              /* text color */
+    }
+	.busy,
+	.fc-agenda .busy .fc-event-time,
+	.busy a {
+    background-color: #aabbbb; /* background color */
+    border-color: black;     /* border color */
+    color: black;           /* text color */
+    }
+
+
+.myorder-scroll {
+	height:500px;	max-height:500px;	overflow-x: hidden;	overflow-y: auto;	width: 300px;
+}
+#external-events {
+	ma@x-height:175px;
+	o@verflow-y:auto;
+}
+
+#styleforhire-appointment-form td {
+	vertical-align: top;
+}
+
+.fc table {
+	margin: 0 0;
+}
+
+.fc-header-title{
+	color: black;
+	font-weight: bold;
+}
+
+
+</style>

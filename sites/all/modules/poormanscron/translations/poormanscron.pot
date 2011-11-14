@@ -1,0 +1,53 @@
+# $Id: poormanscron.pot,v 1.2.2.1 2009/09/29 22:40:39 davereid Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  poormanscron.module,v 1.22.2.2 2009/09/29 22:36:15 davereid
+#  poormanscron.info,v 1.2.4.1 2009/09/29 22:31:58 davereid
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-09-29 17:38-0500\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: poormanscron.module:99
+msgid "Automatically run cron"
+msgstr ""
+
+#: poormanscron.module:101
+msgid "Never"
+msgstr ""
+
+#: poormanscron.module:102
+msgid "When enabled, the site will check whether cron has been run in the configured interval and automatically run it upon the next page request. For more information visit the <a href=\"@status-report-url\">status report page</a>."
+msgstr ""
+
+#: poormanscron.module:70
+msgid "cron"
+msgstr ""
+
+#: poormanscron.module:70
+msgid "Cron has been running for more than an hour and is most likely stuck."
+msgstr ""
+
+#: poormanscron.module:14
+msgid "Execute cron"
+msgstr ""
+
+#: poormanscron.info:0
+msgid "Poormanscron"
+msgstr ""
+
+#: poormanscron.info:0
+msgid "Internal scheduler for users without a cron application."
+msgstr ""
+

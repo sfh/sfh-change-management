@@ -1,0 +1,95 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * One line description of the module.
+ *
+ * More specific description of the module.
+ *
+ * Credits, URL if available.
+ */
+
+/*******************************************************************************
+ * Hook Functions (Drupal)
+ ******************************************************************************/
+
+/**
+ * Implementation of hook_example().
+ */
+function skeleton_example() {
+
+}
+
+
+/*******************************************************************************
+ * Hook Functions (TAPIr)
+ ******************************************************************************/
+
+
+
+/*******************************************************************************
+ * Hook Functions (Ubercart)
+ ******************************************************************************/
+/* subu altering the cart */
+
+function skeleton_uc_cart_alter(&$items){
+// Loop through all the items in the cart...
+/*	$items->qty=0;
+  for ($i = 0, $j = count($items); $i < $j; $i++) {
+    // Print out the item array for debugging purposes.
+    drupal_set_message('<pre>'. print_r($items[$i], TRUE) .'</pre>');
+  }
+  */
+}
+
+/* this functionis not working below
+/*function skeleton_cart_display($item){
+ 
+}*/
+function skeleton_form_alter(&$form, $form_state, $form_id) {
+
+	if ($form_id == 'uc_cart_view_form') { 
+		$form['items']['#columns']['image']['cell'] = '';
+		$form['items']['#columns']['desc']['cell'] = 'Service';/* Subu to center the title */
+		unset($form['items']['#columns']['qty']);  /* subu  i remove the qty column header*/
+		
+		$form['items']['#columns']['remove']['weight'] = 1;
+		$form['items']['#columns']['image']['weight'] = 2;
+		$form['items']['#columns']['desc']['weight'] = 3;
+		/*$form['items']['#columns']['hrs_service']['weight'] = 4;*/
+		$form['items']['#columns']['total']['weight'] = 4;
+		//This loop denies access to all qty fields for the form
+		foreach($form['items'] as &$item)  {
+			if (is_array($item) & isset($item['qty'])) {
+				$item['qty']['#access'] = 0;  
+			}
+			}   
+	}
+	/*if($form_id == 'uc_cart_checkout_form'){
+		drupal_set_message('<pre>'. print_r($form_id, TRUE) .'</pre>');
+		foreach($form['items'] as &$item)  {
+			   drupal_set_message('<pre>'. print_r($item['qty'], TRUE) .'</pre>');
+			   }
+
+	}*/
+}
+
+function skeleton_tapir_table_alter(&$table, $table_id) {
+	 if ($table_id == 'uc_cart_view_table') { 
+	/* drupal_set_message('<pre>'. print_r($table_id, TRUE) .'</pre>');*/
+	}
+}
+
+
+
+/*******************************************************************************
+ * Callback Functions, Forms, and Tables
+ ******************************************************************************/
+
+
+
+/*******************************************************************************
+ * Module and Helper Functions
+ ******************************************************************************/
+

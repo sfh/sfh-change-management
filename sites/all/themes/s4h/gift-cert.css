@@ -1,0 +1,219 @@
+@media screen, projection
+	{
+#gc-wrapper {
+z-index: 2000;
+width: 695px; 
+height: 566px;
+border: none;
+margin: 0;
+background: url(_img/gc/s4h_gc_frame.JPG) no-repeat top left;
+}
+#gc-main {
+  position: relative;
+  top: 100px;
+  l@eft: 300px;
+}
+#gc-wrapper #gc-main p#red-para{
+color: red;
+font-size: 12px;
+}
+#gc-wrapper #gc-main p{
+  font-size: 12px;
+  font-family:Helvetica;
+  width: 400px;
+}
+
+#gc-wrapper td {}
+#gc-wrapper td img { display: none; }
+p.redeem-instructions { display: none; }
+
+/* td { vertical-align: top;}
+td.right { text-align: right; margin: 0 !important; } */
+td.td3 { height: 30px;	}
+td.td4 {
+position: absolute;
+top: 40px;
+right: 290px;
+}
+td.td4 h2 {
+padding: 0;
+margin: 0;
+}
+td.td3 h2 {
+position: absolute;
+top: 40px;
+left: 220px;
+text-transform: uppercase;
+color: #706e60;
+font-size: 16px;
+width: 300px;
+}
+td.td6 {
+padding: 0;
+}
+td.td6 p {
+font-size: 12px;
+padding-top: 0;
+padding-left: 300px;
+width: 400px;
+line-height: 1.2em;
+}
+td.td6 p#greeting { top: 100px; left: 300px;}
+td.td6 p#main-text { top: 110px;}
+td.td6 p#sign-off { top: 190px;}
+td.td6 p#red-para{
+color: red;
+font-size: 12px;
+}
+td.td7 h3 {
+position: absolute;
+top: 270px;
+left: 220px;
+text-transform: uppercase;
+color: #706e60;
+font-size: 14px;
+}
+
+td.td7 h3 span {
+font-weight: bold;
+}
+
+	}
+
+@media print
+	{
+
+ #gc-wrapper {
+z-index: 2000;
+width: 675px; 
+height: 566px;
+border: none;
+margin: 0;
+background: url(_img/gc/s4h_gc_frame.JPG) no-repeat top left;
+}
+
+#gc-main {
+  position: relative;
+  top: 100px;
+  l@eft: 300px;
+}
+#gc-wrapper #gc-main p#red-para{
+color: red;
+font-size: 12px;
+}
+#gc-wrapper #gc-main p{
+  font-size: 12px;
+  font-family:Helvetica;
+  width: 400px;
+}
+
+#gc-wrapper td {}
+#gc-wrapper td img { display: none; }
+p.redeem-instructions { display: none; }
+
+/* td { vertical-align: top;}
+td.right { text-align: right; margin: 0 !important; } */
+td.td3 { height: 30px;	}
+td.td4 {
+position: absolute;
+top: 40px;
+right: 290px;
+}
+td.td4 h2 {
+padding: 0;
+margin: 0;
+}
+td.td3 h2 {
+position: absolute;
+top: 40px;
+left: 220px;
+text-transform: uppercase;
+color: #706e60;
+font-size: 16px;
+width: 300px;
+}
+td.td6 {
+padding: 0;
+}
+td.td6 p {
+font-size: 16px;
+padding-top: 0;
+padding-left: 300px;
+width: 400px;
+line-height: 1.2em;
+}
+td.td6 p#greeting { top: 100px; left: 300px;}
+td.td6 p#main-text { top: 110px;}
+td.td6 p#sign-off { top: 190px;}
+td.td6 p#red-para{
+color: red;
+font-size: 22px;
+}
+td.td7 h3 {
+position: absolute;
+top: 270px;
+left: 220px;
+text-transform: uppercase;
+color: #706e60;
+font-size: 14px;
+}
+
+td.td7 h3 span {
+font-weight: bold;
+}
+p.print-instructions { display: none; }
+#header { display:none }
+#footer { display:none }
+#print-form { display:none }
+#logo { display:none }
+#main { margin:0 auto;
+        position:relative;
+        /*top:0px !important;*/
+        width:1027px;}
+/*
+		body {
+			background: #1dadcc;
+			font-family: Arial, Helvetica, Verdana, sans-serif;
+			font-size: 0.625em;
+			}
+		
+		p { font-size: 2em; margin: 0 0 .5em; line-height: 1.2em;}
+		img { display: block; }
+
+		
+		td { vertical-align: top; background: #fff; }
+		td.right { text-align: right; margin: 0 !important; }
+		td.bottom { vertical-align: bottom; }
+		td.td1 { width: 1140px;	height: 60px;	}
+		td.td2 { width: 338px;	height: 387px;	}
+		td.td3 { width: 559px;	height: 79px;	}
+		td.td4 { width: 197px;	height: 79px;	}
+		td.td5 { width: 46px;	height: 387px;	}
+		td.td6 { width: 1140px;	height: 230px;	}
+		td.td7 { width: 756px;	height: 78px;	}
+		td.td8 { width: 1140px;	height: 62px;	}
+
+		#gc-wrapper {
+			width: 1140px; 
+			height: 1000px;
+			margin: 0;
+			background: url(_img/gc/s4h_gc_frame.JPG) no-repeat top left;
+			}
+		
+		#greeting { margin: 0 0 1em; }
+		#sign-off { margin: 1em 0 0; }
+		
+		#main-inner, #content { width: 1000px; margin: 0 !important; padding: 0 !important; }
+		
+		#header,
+		#sidebar-left,
+		#sidebar-right,
+		#page-title,
+		#content-header,
+		#footer,
+		form#print-form,
+		p.print-instructions { display: none; }
+		p.redeem-instructions { display: block; margin-top: 1.5em; color: #666; }
+		p.redeem-instructions a { text-decoration: underline; }
+*/	
+	}

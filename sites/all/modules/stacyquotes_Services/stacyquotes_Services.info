@@ -1,0 +1,4 @@
+; $Id;
+name = stacy quotes on Services page
+description = "Stacy's quotes on the right bottom side of the Services page"
+core = 6.x

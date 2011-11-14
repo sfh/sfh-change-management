@@ -1,0 +1,60 @@
+<?php
+/* module for displaying stacy's quotes on the right bottom of the screen
+*/
+/* implementation of hook_help()
+*/
+function stacyFairyFront_help($path, $arg){
+    if($path =='admin/help#stacyFairyFront'){
+        $txt = 'Subu says: This module displays stacy\'s image on the left sied in a block. ';
+        return '<p>'.t($txt).'</p>';
+    }
+}
+
+/* implementation of hook_block()
+*/
+function stacyFairyFront_block($op='list', $delta=0, $edit=array()){
+switch($op){
+    case 'list':
+        $blocks[0]['info'] = t('Stacy\'s Image');
+        return $blocks;
+    case 'view':
+            $content = theme('stacyFairyFront_image');
+            /*$blocks['subject'] = t('Stacys image');*//* this displays the subject which i dont need now */
+            $blocks['content'] = $content;
+            return $blocks;
+
+    }
+}
+
+/*function stacyquotes_theme(){
+ return array(
+    'stacyquotes_quote' => array(
+        'arguments' => array('text' => NULL),
+        ),
+    );
+}*/
+function stacyFairyFront_theme(){
+ return array(
+    'stacyFairyFront_image' => array(
+        'arguments' => array(),
+        ),
+    );
+}
+
+/* theme function for theming quotes
+@param $text - stacy's image on the left side of the pages ( not the front page)
+@param $origin  - source 
+@return
+and html themed string
+*/
+function theme_stacyFairyFront_image(){
+/* subu - the below 3 lines is to add the css file to the theme */
+    $module_path = drupal_get_path('module','stacyFairyFront');
+    $full_path = $module_path.'/stacyFairyFront.css';
+    drupal_add_css($full_path);
+
+    $output =   '<div id="stacyFairyFront">'.
+                '<img alt="" src="/sites/all/themes/s4h/_img/newones/leftedge/front/stacy-fairy.jpg" />'.
+                '</div>';
+    return $output;
+}

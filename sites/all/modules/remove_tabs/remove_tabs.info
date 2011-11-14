@@ -1,0 +1,6 @@
+name = Other
+description = "Remove Tabs"
+core = 6.x
+version = VERSION
+package = Remove Tabs
+files = remove_tabs.module

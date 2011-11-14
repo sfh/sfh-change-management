@@ -1,0 +1,228 @@
+$(document).ready(function() {
+	/* initialize the external events
+		-----------------------------------------------------------------*/
+		iterateEvents();
+		/* initialize the calendar
+		-----------------------------------------------------------------*/
+		var $calendar = $('#calendar');
+		initializeCalendar($calendar);
+	});
+	
+function initializeCalendar($calendar){
+		var date = new Date();
+		var d = date.getDate();
+		var m = date.getMonth();
+		var y = date.getFullYear();
+		var param = window.location.pathname;
+		param = param.substring(param.lastIndexOf("/"));
+		//alert(param);
+		
+	$calendar.fullCalendar({
+			theme: true,
+			header: {
+				left: 'prev,next today',
+				center: 'title',
+				right: 'agendaWeek,month,agendaDay'
+			},
+			aspectRatio:1.5,
+			defaultView:'agendaWeek',
+			allDaySlot: false,
+			defaultEventMinutes: 120,
+			editable: true,
+			disableResizing: true,
+			//disableDragging: true,
+			//draggable: true,
+			events: "/book_appointment_ajax"+param,
+			droppable: true, // this allows things to be dropped onto the calendar !!!
+			drop: function(date, allDay) { // this function is called when something is dropped
+				drop(this,date,allDay);
+			},
+			eventRender: function(calEvent, jsEvent, view) {
+					 
+					renderEvent(calEvent,jsEvent,view);
+			}
+		});
+}
+function iterateEvents(){
+		$('#external-events div.external-event').each(function() {
+
+			var title=$.trim($(this).text());
+			var idtitle=1;
+			if(title.indexOf('Stylist Introduction') === 0) {idtitle=1;}
+			if(title.indexOf('Closet Audit') === 0) {idtitle=2;}
+			if(title.indexOf('Closet Shopping') === 0) {idtitle=3;}
+			if(title.indexOf('Personal Shopping: Shopping with you') === 0) {idtitle=4;}
+			if(title.indexOf('Personal Shopping: Shopping for you') === 0) {idtitle=5;}
+			var eventObject = {
+				title: $.trim($(this).text()), // use the element's text as the event title
+				id: idtitle
+			};
+			//alert(idtitle);
+			// store the Event Object in the DOM element so we can get to it later
+			$(this).data('eventObject', eventObject);
+
+			// make the event draggable using jQuery UI
+			$(this).draggable({
+				zIndex: 999,
+				revert: true,      // will cause the event to go back to its
+				revertDuration: 0  //  original position after the drag
+			});
+
+		});
+	}
+	
+function removeEvent(id){
+	    $('#calendar').fullCalendar('removeEvents', id);
+	}
+
+function renderEvent (calEvent, jsEvent, view){
+
+	var start;
+	var monthApp = calEvent.start.getMonth()+1;
+	var dateOfApp = monthApp + "/" + calEvent.start.getDate() + "/" + calEvent.start.getFullYear();
+	
+	var start_min = calEvent.start.getMinutes();
+	if(start_min < 10) start_min = '0' + start_min;
+	var start=calEvent.start.getHours();
+	var start_am_pm = 'AM';
+	if(calEvent.start.getHours() > 11) {start_am_pm = 'PM'; if(start > 12) start=start-12;}
+	start = start+':'+ start_min + start_am_pm;
+	
+	var end='';
+	var end_min = '';
+	var end_am_pm = 'AM';
+	if(calEvent.end === null){
+		end=calEvent.start.getHours()+2;
+		end_min=start_min;
+	}
+	else { //if(calEvent.end != null)
+	end=calEvent.end.getHours();
+	end_min=calEvent.end.getMinutes();
+	if(end_min < 10) end_min = '0' + end_min;
+	}
+	
+	if(end > 11) {
+			end_am_pm = 'PM';
+			if(end > 12) end=end-12;
+			}
+	end=end+":"+end_min+end_am_pm;
+	
+	var diff = 2;
+	if(calEvent.end != null){
+		diff = (calEvent.end - calEvent.start)/(60*60*1000);
+	}
+	
+	if(calEvent.id === 1){
+		$("#requested_date_1").html(dateOfApp);
+		$("#requested_time_1").html('&nbsp;'+start + '-' + end);
+		$("#service_1").html(calEvent.title);
+		$("#stylist_introduction_info").val(dateOfApp+'-'+start + '-' + end+'-'+diff);
+		
+		}
+	else if(calEvent.id === 2){
+		$("#requested_date_2").html(dateOfApp);
+		$("#requested_time_2").html('&nbsp;'+start + '-' + end);
+		$("#service_2").html(calEvent.title);
+		$("#closet_audit_info").val(dateOfApp+'-'+start + '-' + end+'-'+diff);
+		}
+	else if(calEvent.id === 3){
+		$("#requested_date_3").html(dateOfApp);
+		$("#requested_time_3").html('&nbsp;'+start + '-' + end);
+		$("#service_3").html(calEvent.title);
+		$("#closet_shopping_info").val(dateOfApp+'-'+start + '-' + end+'-'+diff);
+		}
+	else if(calEvent.id === 4){
+		$("#requested_date_4").html(dateOfApp);
+		$("#requested_time_4").html('&nbsp;'+start + '-' + end);
+		$("#service_4").html(calEvent.title);
+		$("#personal_shopping_with_info").val(dateOfApp+'-'+start + '-' + end+'-'+diff);		
+		}
+	else if(calEvent.id === 5){
+		$("#requested_date_5").html(dateOfApp);
+		$("#requested_time_5").html('&nbsp;'+start + '-' + end);
+		$("#service_5").html(calEvent.title);
+		$("#personal_shopping_for_info").val(dateOfApp+'-'+start + '-' + end+'-'+diff);
+		}
+		
+	if(calEvent.id != 999){
+	jsEvent.qtip({
+		   content: {
+				 text: '<a href=\'javascript:removeEvent('+calEvent.id+')\'>Delete this appointment</a>',
+				 title: {
+					text: calEvent.title + '<br />Date&nbsp;&nbsp;:&nbsp;&nbsp;' + dateOfApp + '<br />Start&nbsp;&nbsp;:&nbsp;&nbsp;' + start + '<br />End&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;' + end
+					//,
+					//button: 'x' // can put an <img /> tag or any other valid HTML in here. Clicking it closes the tooltip.
+				 }
+			  },
+			  position: {
+				 corner: {
+					tooltip: 'bottomLeft', // Display at the top right hand corner like Google Calendar
+					target: 'topRight'
+				 },
+				 adjust: {
+					screen: true // Keep the tooltip within the viewport at all times
+				 }
+			  },
+			  show: 'click',
+			  hide: { when: { target: $(document.body).children().not( $(self) ),event: 'mousedown' } },
+// Close the tooltip when it loses focus e.g. anywhere except the tooltip is clicked
+			  style: {
+				 background: 'white',
+				 border: {
+					color: 'black', // Grey style border
+					radius: 5 // Give it some rounded corners (Note 1px rounded borders aren't supported at the moment)
+				 },
+				 tip: true // Give it a speech bubble tip (corner is automatically detected)
+			  },
+			  // The magic
+		api: {
+			onRender: function() {
+				this.elements.tooltip.click(this.hide) // <img src="http://craigsworks.com/projects/forums/images/smilies/wink.gif" style="vertical-align: middle;" border="0" alt="Wink" title="Wink" />
+			}
+		}
+
+
+
+		});
+		}// end if(calEvent.id != 999)
+	}
+	
+	function drop(obj, date, allDay){
+	
+	// retrieve the dropped element's stored Event Object
+								var d = date.getDate();
+				var m = date.getMonth();
+				var y = date.getFullYear();
+				var h = date.getHours();
+				var n = date.getMinutes();
+	// retrieve the dropped element's stored Event Object
+				var originalEventObject = $(obj).data('eventObject');
+
+				// we need to copy it, so that multiple events don't have a reference to the same object
+				var copiedEventObject = $.extend({}, originalEventObject);
+				if(copiedEventObject.id === 1) copiedEventObject.end = new Date(y,m,d,h,n+30);
+				else if(copiedEventObject.id === 2) copiedEventObject.end = date + 30;
+				else if(copiedEventObject.id === 3) copiedEventObject.end = date + 30;
+				else if(copiedEventObject.id === 4) {
+								copiedEventObject.end = new Date(y,m,d,h+4,n);
+							}
+				else if(copiedEventObject.id === 5) {
+							copiedEventObject.end = new Date(y,m,d,h+1,n);
+				}
+				// assign it the date that was reported
+				copiedEventObject.start = date;
+				copiedEventObject.allDay = allDay;
+
+				// render the event on the calendar
+				// the last `true` argument determines if the event "sticks" (http://arshaw.com/fullcalendar/docs/event_rendering/renderEvent/)
+				$('#calendar').fullCalendar('renderEvent', copiedEventObject, true);
+
+				// is the "remove after drop" checkbox checked?
+				if ($('#drop-remove').is(':checked')) {
+					// if so, remove the element from the "Draggable Events" list
+					$(obj).remove();
+				}
+				
+				
+
+	}

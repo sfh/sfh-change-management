@@ -1,0 +1,58 @@
+<?php
+/* module for displaying stacy's quotes on the right bottom of the screen
+*/
+/* implementation of hook_help()
+*/
+function stacyquotes_Services_help($path, $arg){
+	if($path =='admin/help#stacyquotes_Services'){
+		$txt = 'Subu says: This module displays stacy quotes in blocks. '.
+				'It assumes the existence of a content type named #quote".';
+		return '<p>'.t($txt).'</p>';
+	}
+}
+
+/* implementation of hook_block()
+*/
+function stacyquotes_Services_block($op='list', $delta=0, $edit=array()){
+switch($op){
+	case 'list':
+		$blocks[0]['info'] = t('Stacy\'s quotes on Services page');
+		return $blocks;
+	case 'view':
+			$content = theme(	'stacyquotes_Services_quote',
+								check_plain($item));
+
+			$blocks['content'] = $content;
+			return $blocks;
+	}
+}
+
+
+
+function stacyquotes_Services_theme(){
+ return array(
+	'stacyquotes_Services_quote' => array(
+		'arguments' => array(),
+		),
+	);
+}
+
+/* theme function for theming quotes
+@param $text - the quote content
+@param $origin  - source 
+@return
+and html themed string
+*/
+function theme_stacyquotes_Services_quote(){
+/* subu - the below 3 lines is to add the css file to the theme */
+$module_path = drupal_get_path('module','stacyquotes_Services');
+$full_path = $module_path.'/stacyquotes_Services.css';
+drupal_add_css($full_path);
+
+$output =	'<div id="stacyquotes_Services-text"  class="float-left">'.
+			/*t("\"I believe every<div class=\"indent\">person is beautiful.</div>What you do with<div class=\"indent\">that beauty, how</div>you develop it,<div class=\"indent\">is up to you.\"</div>").*/
+			'<img  width="205" height="308" alt="" src="/sites/all/themes/s4h/_img/newones/rightedge/stacy-services-right.JPG" />'.
+			'</div>';
+return $output;
+}
+

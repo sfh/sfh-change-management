@@ -1,0 +1,4 @@
+; $Id;
+name = Find Stylist Text
+description = "Stylist text on the header"
+core = 6.x

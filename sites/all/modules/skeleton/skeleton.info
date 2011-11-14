@@ -1,0 +1,8 @@
+; $Id$
+name = Ubercart Display
+description = Extend the functionality of Ubercart in some way.
+dependencies[] = uc_store
+dependancies[] = uc_product
+dependancies[] = uc_cart
+package = Ubercart
+core = 6.x

@@ -1,0 +1,9 @@
+#calendar {
+		position: relative;
+		clear: both;
+		width: 700px;
+		margin: 10 auto;
+		}
+#calendar-section{
+		padding: 0;
+}

@@ -1,0 +1,1307 @@
+<?php
+// $Id;
+
+/**
+ * @file
+ * Sell Gift Certificates on an Ubercart-powered Drupal store
+ */
+module_load_include('inc', 'uc_gift_certificate', 'uc_gift_certificate.user');
+module_load_include('inc', 'uc_gift_certificate', 'uc_gift_certificate.ca');
+
+/**
+ * Implementation of hook_perm().
+ */
+function uc_gift_certificate_perm() {
+  return array(
+    'administer gift certificates',
+  );
+}
+
+/*
+ * Implementation of hook_menu().
+ */
+function uc_gift_certificate_menu() {
+  global $user;
+
+  $items = array();
+  $items['admin/store/settings/gift_certificates'] = array(
+    'title' => 'Gift Certificate Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_gift_certificate_settings'),
+    'file' => 'uc_gift_certificate.admin.inc',
+    'description' => 'Administer Gift Certificates',
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['redeem'] = array(
+    'title' => 'Gift Certificate Code',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_gift_certificate_cert_code_form'),
+    'description' => 'Enter Your Gift Certificate Code',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['my_gift_certificates'] = array(
+    'title' => 'Send Gift Certificates',
+    'description' => 'Issue Gift Certificates',
+    'page callback' => 'uc_gift_certificate_issue',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/store/gift_certificates'] = array(
+    'title' => 'Gift Certificates',
+    'description' => 'Manage Gift Certificates',
+    'page callback' => 'uc_gift_certificate_manage',
+    'file' => 'uc_gift_certificate.admin.inc',
+    'page arguments' => array('manage'),
+    'access arguments' => array('administer gift certificates'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/store/gift_certificates/list'] = array(
+    'title' => 'Gift Certificates',
+    'description' => 'Manage Gift Certificates',
+    'page callback' => 'uc_gift_certificate_manage',
+    'page arguments' => array('manage'),
+    'file' => 'uc_gift_certificate.admin.inc',
+    'access arguments' => array('administer gift certificates'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/store/gift_certificates/add'] = array(
+    'title' => 'Add',
+    'description' => 'Add A Gift Certificate',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_gift_certificate_add_form', 'add'),
+    'file' => 'uc_gift_certificate.admin.inc',
+    'access arguments' => array('administer gift certificates'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  $items['gift_certificates/%/issue'] = array(
+    'title' => 'Issue Gift Certificate',
+    'description' => 'Issue the gift certificate to a user',
+    'page callback' => 'uc_gift_certificate_issue_certificate',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/store/gift_certificates/%/edit'] = array(
+    'title' => 'Edit Certificate',
+    'description' => 'Edit a currently existing Gift Certificate',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_gift_certificate_add_form', 3),
+    'file' => 'uc_gift_certificate.admin.inc',
+    'access arguments' => array('administer store'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/store/gift_certificates/%/delete'] = array(
+    'title' => 'Delete Gift Certificate',
+    'description' => 'Delete Gift Certificate',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_gift_certificate_delete_confirm', 3),
+    'file' => 'uc_gift_certificate.admin.inc',
+    'access arguments' => array('administer store'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['cart/checkout/get_certificate_discount/%'] = array(
+    'title' => 'Certificate details',
+    'description' => 'Certificate details.',
+    'page callback' => 'uc_gift_certificate_apply_discount',
+    'page arguments' => array(3),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['cart/checkout/certificate/%'] = array(
+    'title' => 'Certificate details',
+    'description' => 'Certificate details.',
+    'page callback' => 'uc_gift_certificate_apply',
+    'page arguments' => array(3),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_mail()
+ */
+function uc_gift_certificate_mail($key, &$message, $params)
+{
+  global $base_url;
+  $variables = array(
+    '!gift_certificate_message' => $params['certificate']['msg_to_recipient'],
+    '!gift_certificate_value' => uc_currency_format($params['certificate']['value']),
+    '!gift_certificate_value_integer' => (int) $params['certificate']['value'],
+    '!gift_certificate_code' => $params['certificate']['code'],
+    '!username' => $params['certificate']['account']->name,
+    '!password' => $params['certificate']['password'],
+    '!site' => variable_get('site_name', 'Drupal'),
+    '!uri' => $base_url,
+    '!uri_brief' => substr($base_url, strlen('http://')),
+    '!mailto' => $params['certificate']['account']->mail,
+    '!date' => format_date(time()),
+    '!login_uri' => url('user', array('absolute' => TRUE)),
+    '!edit_uri ' => url('user/' . $params['certificate']['account']->uid . '/edit', array('absolute' => TRUE)),
+    '!login_url' => user_pass_reset_url($params['certificate']['account']),
+	'!gift_certificate_recipient_f_name' => $params['certificate']['recipient_first_name'], // subu - to add recipient first name
+  );
+
+  $message['subject'] = t($params['context']['subject'], $variables);
+  $message['body'] = t($params['context']['body'], $variables);
+}
+
+/**
+ * Email the user a notification about their gift certificate
+ */
+ //function uc_gift_certificate_mail_cert_notice($mail, $certificate_id, $msg_to_recipient = NULL){ Subu altered from this
+function uc_gift_certificate_mail_cert_notice($mail, $certificate_id, $msg_to_recipient = NULL, $recipient_first_name = NULL){
+  global $base_url;
+  global $user;
+  if (!valid_email_address($mail)) {
+    drupal_set_message(t('The e-mail address %mail is not valid.', array('%mail' => $mail)));
+    return false;
+  }
+
+  $gc = uc_gift_certificate_load($certificate_id);
+
+  $new_user = TRUE;
+  $cert_user = user_load(array('mail' => $mail));
+
+  // Found an existing user, so send them an email
+  if ($cert_user) {
+    //drupal_set_message("user found".$cert_user->name);
+    $new_user = FALSE;
+    $variables = array(
+      'msg_to_recipient' => $msg_to_recipient,
+	  'recipient_first_name' => $recipient_first_name,
+      'value' => $gc->value,
+      'code' => $gc->cert_code,
+      'account' => $cert_user,
+    );
+    $from = variable_get('uc_store_email_from', ini_get('sendmail_from'));
+    $subject = variable_get('uc_gc_email_subject', uc_gift_certificate_get_setting_defaults('uc_gc_email_subject'));
+    $body = variable_get('uc_gc_email_body', uc_gift_certificate_get_setting_defaults('uc_gc_email_body'));
+    $language = user_preferred_language($cert_user);
+    $context['subject'] = $subject;
+    $context['body'] = $body;
+    $params = array('account' => $cert_user, 'certificate' => $variables, 'context' => $context);
+
+    if (db_query("UPDATE {uc_gift_certificates} SET user_id = %d WHERE certificate_id = %d", $cert_user->uid, $certificate_id)) {
+      $message = "Gift certificate was issued succssfully";
+    }
+    else {
+      $message = "Gift certificate could not be issued.";
+    }
+  }
+  else {
+    // Otherwise we're creating a new user.
+    $fields = array(
+      'name' => $mail,
+      'mail' => $mail,
+      'init' => $mail,
+      'pass' => user_password(variable_get('uc_pwd_length', 6)),
+      'roles' => array(),
+      'status' => 1,
+    );
+
+    $account = user_save('', $fields);
+    $variables = array(
+      'msg_to_recipient' => $msg_to_recipient,
+	  'recipient_first_name' => $recipient_first_name,
+      'value' => $gc->value,
+      'code' => $gc->cert_code,
+      'account' => $account,
+      'password' => $fields['pass'],
+    );
+    $from = variable_get('uc_store_email_from', ini_get('sendmail_from'));
+    $subject = variable_get('uc_gc_email_new_user_subject', uc_gift_certificate_get_setting_defaults('uc_gc_email_new_user_subject'));
+    $body = variable_get('uc_gc_email_new_user_body', uc_gift_certificate_get_setting_defaults('uc_gc_email_new_user_body'));
+    $language = user_preferred_language($account);
+    $context['subject'] = $subject;
+    $context['body'] = $body;
+    $params = array('account' => $account, 'certificate' => $variables, 'context' => $context);
+
+    if (db_query("UPDATE {uc_gift_certificates} SET user_id = %d WHERE certificate_id = %d", $account->uid, $certificate_id)) {
+      $message = "Gift certificate was issued succssfully";
+    }
+    else {
+      $message = "Gift certificate could not be issued.";
+    }
+  }
+
+  if (module_exists('mimemail')) {
+    // If mimemail module is installed ALL emails are send via this module.
+    // drupal_mail() builds the content of the email but does NOT send.
+    $params['certificate']['msg_to_recipient'] = nl2br($params['certificate']['msg_to_recipient']);
+    $message = drupal_mail('uc_gift_certificate', 'gift-certificate-welcome', $mail, $language, $params, $from, FALSE);
+    $plain = variable_get('uc_gc_email_format', uc_gift_certificate_get_setting_defaults('uc_gc_email_format')) == 'plain';
+    $message['result'] = mimemail(
+      $message['from'],
+      $message['to'],
+      $message['subject'],
+      $message['body'],
+      $plain,
+      $message['headers']
+    );
+  } else {
+    $message = drupal_mail('uc_gift_certificate', 'gift-certificate-welcome', $mail, $language, $params, $from, TRUE);
+  }
+}
+
+function uc_gift_certificate_checkout_pane() {
+  $panes[] = array(
+    'id' => 'certificate_discount',
+    'callback' => 'uc_gift_certificate_pane_coupon_discount',
+    'title' => t('Certificate Discount'),
+    'desc' => t('Allows shoppers to use a gift certificate during checkout for order discounts.'),
+    'weight' => 5,
+    'process' => TRUE,
+  );
+  $panes[] = array(
+    'id' => 'gift_certificate',
+    'callback' => 'uc_checkout_pane_gift_certificate',
+    'title' => t('Gift Certificates'),
+    'desc' => t('Allows shoppers to see that they have a gift certificate during checkout.'),
+    'weight' => 5,
+    'process' => TRUE,
+  );
+
+  return $panes;
+}
+
+function uc_checkout_pane_gift_certificate($op, &$arg1, $arg2) {
+  global $user;
+  $order = $arg1;
+  // See if we ar editing an order or creating it
+  $uid = empty($order->uid) ? $user->uid : $order->uid;
+  if (!uc_gift_certificate_total($uid)){
+    //do not show pane in this case
+    return;
+  }
+
+  $cert_arr = uc_gift_certificate_load_certificates($uid);
+  switch ($op) {
+    case 'view':
+      $total = uc_gift_certificate_total($uid);
+      $description = t('');
+      $value = variable_get('uc_gc_pane_msg', uc_gift_certificate_get_setting_defaults('uc_gc_pane_msg'));
+      $variables = array('!tot' => uc_currency_format($total));
+      $value = strtr($value, $variables);
+      $contents['gift_certificate_total'] = array('#value' => $value);
+     return array('description' => $description, 'contents' => $contents);
+  }
+}
+
+function uc_gift_certificate_pane_coupon_discount($op, &$arg1, $arg2) {
+  switch ($op) {
+
+    case 'view':
+
+      $description = t('Enter a Gift Certificate for this order.');
+      $contents['certificate_code'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Coupon code'),
+        '#default_value' => $arg1->data['certificate_code'],
+        '#size' => 25,
+      );
+      return array('description' => $description, 'contents' => $contents);
+    case 'process':
+      $arg1->data['certificate_code'] = $arg2['certificate_code'];
+      return TRUE;
+    case 'review':
+
+
+      break;
+  }
+}
+
+/**
+ * Callback function for the discount line item.
+ */
+function uc_gift_certificate_line_item_discount($op, $order) {
+  drupal_set_message('in discount');
+  switch ($op) {
+    case 'load':
+      $discounts = uc_gift_certificate_calculate_discounts($order);
+      $lines = array();
+      foreach ($discounts as $discount) {
+        $lines[] = array(
+          'id' => 'discount',
+          'title' => $discount['title'],
+          'amount' => $discount['amount'],
+          'weight' => variable_get('uc_li_discount_weight', 5),
+        );
+      }
+      return $lines;
+  }
+}
+
+/**
+ * Calculates the discount line items from the configured conditional actions.
+ *
+ * @param $order
+ *   The order object.
+ * @return
+ *   The array of line items, each containing an id, a title, and an amount.
+ */
+function uc_gift_certificate_calculate_discounts($order) {
+  global $user;
+
+  if (isset($order->uid)) {
+    $account = user_load($order->uid);
+  }
+  else {
+    $account = $user;
+  }
+
+  if (is_array($order->line_items)) {
+    foreach ($order->line_items as $i => $line) {
+      if (drupal_substr($line['type'], 0, 9) == 'discount_') {
+        unset($order->line_items[$i]);
+      }
+    }
+  }
+
+  $arguments = array(
+    'order' => array(
+      '#entity' => 'uc_order',
+      '#title' => t('Order'),
+      '#data' => $order,
+    ),
+    'account' => array(
+      '#entity' => 'user',
+      '#title' => t('User'),
+      '#data' => $account,
+    ),
+  );
+
+  $id = 0;
+  $order->discounts = array();
+
+  // Pull the "calculate_discounts" trigger in such a way to get the results.
+  $predicates = ca_load_trigger_predicates('calculate_order_discounts');
+  foreach ($predicates as $predicate) {
+    if (ca_evaluate_conditions($predicate, $arguments)) {
+      $discounts = ca_perform_actions($predicate, $arguments);
+      foreach ((array) $discounts as $i => $discount) {
+        if ($predicate['#actions'][$i]['#name'] == 'uc_discount_action_get_order_discount' && $discount) {
+          // Allow successive discounts to inspect this discount by putting
+          // it in the order object.
+          $order->discounts[$id] = array(
+            'id' => $id,
+            'title' => check_plain($predicate['#actions'][$i]['#title']),
+            'amount' => $discount,
+            'weight' => $predicate['#actions'][$i]['#settings']['line_item_weight'],
+          );
+          $id++;
+        }
+      }
+    }
+  }
+
+  return $order->discounts;
+}
+
+/**
+ * Checkout Pane callback function.
+ *
+ * Used to display a form in the checkout process so that customers
+ * can enter discount coupons.
+ */
+function uc_gift_certificate_cert_checkout($op, $arg1, $arg2) {
+  global $user;
+
+
+//drupal_set_message('Op: '.$op.' Arg2: <pre>'.print_r($arg2, true).'</pre>');
+  switch ($op) {
+    case 'view':
+      uc_add_js(drupal_get_path('module', 'uc_gift_certificate') .'/uc_gift_certificate.js');
+
+      if ($arg1->data['gift_certificate'] != '') {
+        $certificate = uc_gift_certificate_validate($arg1->data['gift_certificate']);
+      }
+
+      // This will
+      if ($arg1->data['gift_certificate_user_value'] != '') {
+        $certificate = uc_gift_certificate_validate_user($arg1->data['gift_certificate_user_value']);
+      }
+
+      if ($certificate->valid) {
+        uc_add_js('$(document).ready(function() {
+          if (window.set_line_item) {
+            set_line_item("gift_certificate", "'. $certificate->title .'", '. -$certificate->amount .', 9);
+            render_line_items();
+          }
+        });', 'inline');
+      }
+
+      // Start the description for the Certificates form
+      $description = variable_get('uc_gift_certificate_pane_description', 'If you have a Gift Certificate code, you can enter it here. ');
+
+      // If we are a logged-in user, calculate their total certificates.
+      if ($user->uid > 0) {
+        $certsTotal = uc_gift_certificate_total($user->uid);
+
+        if ($certsTotal > 0) {
+          $description .= t('<br/><br/><strong>You currently have !total</strong> worth of gift certificates in your account', array('!total' => uc_currency_format($certsTotal)));
+        }
+
+        $items = uc_cart_get_contents();
+        $total = 0;
+
+        foreach ($items AS $item) {
+          $total += ($item->price) * $item->qty;
+        }
+
+        // Decide if it's a discount
+        if ($total > $certsTotal) {
+          $description .= t(', which you can apply as a discount using the button below.');
+          $contents['certificate_discount'] = array(
+            '#type' => 'button',
+            '#value' => t('Apply as Discount'),
+            '#attributes' => array('onclick' => " getCertDiscount(); return false;"),
+          );
+
+          $description .= '<br/><br/>';
+        }
+        else {
+          // Certificates are more than the total, so they can cover the whole cost.
+          if ($total < $certsTotal) {
+            $description .= t(', which is enough to cover this entire order!</strong><br/><br/>You MUST click this in order to pay for your entire order!');
+            $contents['certificate_discount'] = array(
+            '#type' => 'button',
+            '#value' => t('Apply to Order'),
+            '#attributes' => array('onclick' => " getCertDiscount(); return false;"),
+          );
+          }
+        }
+      }
+
+      $contents['certificate-user-value'] = array(
+        '#type' => 'hidden',
+        '#default_value' => 0,
+      );
+
+      // Hidden field used to get the user's total certificates
+      $contents['certificate-user'] = array(
+        '#type' => 'hidden',
+        '#value' => $user->uid,
+      );
+
+
+      $order = uc_order_load($_SESSION['cart_order']);
+
+      $contents['certificate-order-id'] = array(
+        '#type' => 'hidden',
+        '#default_value' => $order->order_id,
+      );
+
+      // Show the text field for entering a new Certificate code (possibly a Printed certificate)
+      $contents['code'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Gift Certificate'),
+        '#default_value' => $arg1->data['gift_certificate'],
+        '#size' => 25,
+      );
+      $contents['apply'] = array(
+        '#type' => 'button',
+        '#value' => t('Apply New Gift Certificate Code'),
+        '#attributes' => array('onclick' => "getCert(); return false;"),
+      );
+      return array('description' => $description, 'contents' => $contents);
+
+    case 'process':
+      // Check to see if they are paying for the entire order with Gift Certificates
+      if ($arg1->payment_method == 'zero_total') {
+        $certificates = uc_gift_certificate_total($arg1->uid);
+
+        // Get current cart total including all line_items.
+        $order_total = $arg1->order_total;
+
+        $line_items = db_result(db_query("SELECT SUM(amount) FROM {uc_order_line_items} WHERE order_id = %d AND type <> 'gift_certificate'", $arg1->order_id));
+        $order_total += $line_items;
+
+        // If the user has more certificates than the order total, update the line item to cover it (or add a new line item)
+        if ($certificates >= $total) {
+          $result = db_query("SELECT line_item_id FROM {uc_order_line_items} WHERE order_id = %d AND type = 'gift_certificate'", $arg1->order_id);
+          if ($lid = db_result($result)) {
+            uc_order_update_line_item($lid, t('Gift Certificates'), -abs($order_total));
+          }
+          else {
+            uc_order_line_item_add($arg1->order_id, 'gift_certificate', t('Gift Certificates'), -$order_total);
+          }
+        }
+      }
+
+      // Otherwise, if they have entered a new code into the textfield during Checkout.. (printable Certificate)
+      elseif ($arg2['code']) {
+        $arg1->data['gift_certificate'] = check_plain($arg2['code']);
+        $arg1->data['gift_certificate_value'] = $arg2['certificate-user-value'];
+
+        $certificate = uc_gift_certificate_validate($arg2['code']);
+        if (!$certificate->valid) {
+          drupal_set_message(t('Sorry, the Certificate you tried to use is invalid or cannot be applied to this order.'), 'error');
+          return FALSE;
+        }
+
+        $result = db_query("SELECT line_item_id FROM {uc_order_line_items} WHERE order_id = %d AND type = 'gift_certificate'", $arg1->order_id);
+        if ($lid = db_result($result)) {
+          uc_order_update_line_item($lid, $certificate->title, -abs($certificate->amount));
+        }
+        else {
+          uc_order_line_item_add($arg1->order_id, 'gift_certificate', $certificate->title, -$certificate->amount);
+        }
+      }
+      // Otherwise, they have hit the "Apply as Discount" button
+      elseif ($arg2['certificate-user-value'] != 0) {
+        drupal_set_message('Discount applied: '.$arg2['certificate-user-value']);
+        $certificate = uc_gift_certificate_validate_user($arg2['certificate-user']);
+        if ($certificate->valid) {
+          uc_add_js('$(document).ready(function() {
+            if (window.set_line_item) {
+              set_line_item("gift_certificate", "'. $certificate->title .'", '. -$certificate->amount .', 9);
+              render_line_items();
+            }
+          });', 'inline');
+          $result = db_query("SELECT line_item_id FROM {uc_order_line_items} WHERE order_id = %d AND type = 'gift_certificate'", $arg1->order_id);
+          if ($lid = db_result($result)) {
+            uc_order_update_line_item($lid, $certificate->title, -abs($certificate->amount));
+          }
+          else {
+            uc_order_line_item_add($arg1->order_id, 'gift_certificate', $certificate->title, -$certificate->amount);
+          }
+        }
+      }
+      return TRUE;
+
+    case 'review':
+      // If any certificates are being used in this order, show them during Cart Review
+      $certificates = uc_gift_certificate_total($arg1->uid);
+
+      foreach ($arg1->line_items AS $item) {
+        if ($item['type'] == 'gift_certificate') {
+          $message = '<center>'. $item['title'] .'</center>';
+          return $message;
+        }
+      }
+      break;
+
+    case 'settings':
+      return;
+  }
+}
+
+/**
+ * Implementation of hook_order()
+ */
+function uc_gift_certificate_order($op, &$arg1, $arg2) {
+  switch ($op) {
+    case 'update':
+      $gc_status_array_default = array (
+         'payment_received' => 'payment_received',
+         'pending' => 0,
+         'processing' => 0,
+         'paypal_pending' => 0,
+         'completed' => 0,
+         'canceled' => 0,
+         'in_checkout' => 0,
+      );
+      $gc_status_array = variable_get('uc_gift_certificate_order_status', $gc_status_array_default);
+      if ($gc_status_array[$arg2]) {
+        uc_gift_certificate_update_cert_vals($arg1->order_id);
+        uc_gift_certificate_create_new_certs($arg1->order_id);
+      }
+
+      // TODO: If the order is canceled we need to refund their points because we are too lazy to do it by hand...
+      if ($arg2 == 'canceled') {
+        // Was this order purchased (or discounted) with certificates?
+        $certificate_amount = abs(db_result(db_query("SELECT SUM(amount) FROM {uc_order_line_items} WHERE `type` = 'gift_certificate' AND order_id = %d", $arg1->order_id)));
+        // If so, refund them to the user.
+        if ($certificate_amount) {
+          db_query("UPDATE {uc_gift_certificates} SET value = value + %d WHERE order_id = %d AND user_id = %d LIMIT 1", $certificate_amount, $arg1->order_id, $arg1->uid);
+          uc_order_comment_save($arg1->order_id, 0, t('Refunded gift certificates worth !value.', array('!value' => uc_currency_format($certificate_amount))));
+        }
+
+        // If this order contains (was used to PURCHASE) certificates, then we need to void them.
+        foreach ($arg1->products as $product) {
+          if (!empty($product->data) && !empty($product->data['attributes']["Recipient's Email Address"])) {
+            db_query("DELETE FROM {uc_gift_certificates} WHERE order_id = %d AND order_product_id = %d", $product->order_id, $product->order_product_id);
+            uc_order_comment_save($arg1->order_id, 0, t('Voided gift certificates worth !value.', array('!value' => uc_currency_format($product->qty * $product->price))));
+          }
+        }
+      }
+      break;
+
+    case 'delete':
+      db_query("DELETE FROM {uc_gift_certificates} WHERE order_id = %d", $arg1->order_id);
+      break;
+
+    case 'save':
+      $certificates = uc_gift_certificate_total($arg1->uid);
+      // Automatically apply gift certificates
+      if ($certificates) {
+
+        // Get current cart total including all line_items.
+        $order_total = $arg1->order_total;
+
+        $line_items = db_result(db_query("SELECT SUM(amount) FROM {uc_order_line_items} WHERE order_id = %d AND type <> 'gift_certificate'", $arg1->order_id));
+        $order_total += $line_items;
+		uc_gift_certificate_debug('semo', ' demo');
+        if ($certificates >= $order_total) {
+			if(uc_gift_certificate_check_promo($arg1->uid,'Ruelala') == TRUE &&
+				$order_total > 0)//subu 8/26/2011 Ruelala. Only when its not a free order(Stylist intro order)
+				$line_item_amount = -75;//subu 8/26/2011 Ruelala
+			else //subu 8/26/2011 Ruelala
+				$line_item_amount = -abs($order_total); 
+        } else {
+          
+		  if(uc_gift_certificate_check_promo($arg1->uid,'Ruelala') == TRUE)//subu 8/26/2011 Ruelala
+				$line_item_amount = -75;//subu 8/26/2011 Ruelala
+		  else //subu 8/26/2011 Ruelala
+				$line_item_amount = -$certificates;
+        }
+		
+        $result = db_query("SELECT line_item_id FROM {uc_order_line_items} WHERE order_id = %d AND type = 'gift_certificate'", $arg1->order_id);
+        if ($lid = db_result($result)) {
+          uc_order_update_line_item($lid, t('Gift Certificates'), $line_item_amount);
+        } else {
+          uc_order_line_item_add($arg1->order_id, 'gift_certificate', t('Gift Certificates'), $line_item_amount);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_line_item()
+ */
+function uc_gift_certificate_line_item() {
+  $items[] = array(
+    'id' => 'gift_certificate',
+    'title' => t('Gift Certificates'),
+    'weight' => 10,
+    'stored' => TRUE,
+    'default' => FALSE,
+    'calculated' => TRUE,
+    'add_list' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Create a new certificate; insert it into the database; notify a user (if it is an Electronic certificate)
+ */
+function uc_gift_certificate_create_new_certs($order_id) {
+  $order = uc_order_load($order_id);
+
+  foreach ($order->products as $product) {
+    if ($product->data){
+      $data = $product->data;
+      // Check if the product is a gift certificate
+      if ($data && $data['attributes'] && isset($data['attributes']["Recipient's Email Address"][0])){
+        $data['attributes']['Certificate Code'][0] = '';
+        $title = t('@gc_title purchased by @first_name @last_name', array('@gc_title' => $product->title, '@first_name' => $order->billing_first_name, '@last_name' => $order->billing_last_name));
+        // Generate a random code and insert the certificate. First delete other certificates for this order_id
+        $new_gc = new stdClass();
+        $new_gc->name = $title;
+        $new_gc->value = $product->qty * $product->price;
+        $new_gc->purchaser_id = $order->uid;
+        $new_gc->order_id = $order->order_id;
+        $new_gc->order_product_id = $product->order_product_id;
+        if (drupal_write_record('uc_gift_certificates', $new_gc)) {
+          $certificate_id = db_last_insert_id('uc_gift_certificates', 'certificate_id');
+          $cert_code = $certificate_id ."-". uc_gift_certificate_mKey();
+          db_query("UPDATE {uc_gift_certificates} SET cert_code = '%s' WHERE certificate_id = %d", $cert_code, $certificate_id);
+
+          // If this is an electronic certificate, send an email.
+          if (isset($data['attributes']["Recipient's Email Address"][0])) {
+            $mail = $data['attributes']["Recipient's Email Address"][0];
+            $msg_to_recipient = $data['attributes']['Message To Recipient'][0];
+			$recipient_first_name = $data['attributes']["Recipient's First Name"][0]; //subu
+            uc_gift_certificate_mail_cert_notice($mail, $certificate_id, $msg_to_recipient,$recipient_first_name);
+          }
+          else {
+            //drupal_set_message('Did not find recipient in array.');
+          }
+
+          // Add the newly created cert_code to the product's attributes (serialized in uc_order_products)
+          $data['attributes']['Certificate Code'][0] = $cert_code;
+          $data = serialize($data);
+
+          db_query("UPDATE {uc_order_products} SET data = '%s' WHERE order_id = %d AND order_product_id = %d", $data, $order_id, $product->order_product_id);
+
+          // Log these to Watchdog?...
+          uc_order_comment_save($order->order_id, 0, t('Added gift certificate !code worth !value.', array('!code' => $cert_code, '!value' => uc_currency_format($product->qty * $product->price))), 'admin');
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Update gift certificate amounts
+ */
+function uc_gift_certificate_update_cert_vals($order_id) {
+  $num_rows = db_result(db_query("SELECT COUNT(*) FROM {uc_order_line_items} WHERE order_id = %d AND type ='gift_certificate'", $order_id));
+
+  if ($num_rows > 1) {
+    drupal_set_message("ERROR: there are $num_rows gift certificate line items");
+  }
+  else if ($num_rows == 0) {
+    // No certificates, so do nothing.
+  }
+  else {
+    $res = db_fetch_object(db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = %d AND type ='gift_certificate'", $order_id));
+    $line_item_val = - $res->amount;
+
+    $query = db_query("SELECT * FROM {uc_orders} WHERE order_id = %d", $order_id);
+    $res = db_fetch_object($query);
+    $user_id = $res->uid;
+    $order_total = $res->order_total;
+    $deducted = 0;
+
+    $query_gift_certs = db_query("SELECT * FROM {uc_gift_certificates} WHERE user_id  = %d AND value > 0", $user_id);
+
+    while (($cert = db_fetch_object($query_gift_certs)) && $deducted < $line_item_val) {
+      $cert_val = $cert->value;
+
+      $left_to_deduct = $line_item_val - $deducted;
+
+      if ($left_to_deduct <= $cert_val){
+        $deduct_from_cert = $left_to_deduct;
+      }
+      else {
+        $deduct_from_cert = $cert_val;
+      }
+
+      $deducted += $deduct_from_cert;
+      $new_cert_val = $cert_val - $deduct_from_cert;
+
+      if (db_query("UPDATE {uc_gift_certificates} SET value  = %f, order_id = %d WHERE certificate_id = %d", $new_cert_val, $order_id, $cert->certificate_id)) {
+        $user = user_load(array('uid' => $user_id));
+
+        //  drupal_set_message('updated cert '.$cert->certificate_id .' to '.$new_cert_val);
+
+      }
+      else {
+        drupal_set_message("Error updating gift certificates");
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Implementation of hook_payment_method().
+ */
+function uc_gift_certificate_payment_method() {
+  global $user;
+
+  $total = uc_gift_certificate_total($user->uid);
+  // Not enough certs available to user, so do not show the pane
+  if (!$total && arg(1) == 'checkout') {
+    return;
+  }
+  $methods[] = array(
+    'id' => 'zero_total',
+    'name' => t('Gift Certificates'),
+    'title' => t('Use my Gift Certificate to pay for the entire order. (You must choose the Credit Card option if this is a Rue la la certificate OR if your gift certificate(s) do not cover the ENTIRE cost. A credit for $75 will automatically be applied if you have a Rue la la certificate.)'),
+    'desc' => t('Allow customers with $0 order totals to checkout without paying.'),
+    'callback' => 'uc_payment_method_zero_total',
+    'checkout' => TRUE,
+    'no_gateway' => TRUE,
+    'weight' => 10,
+  );
+
+  return $methods;
+}
+
+/**
+ * Handle the "Zero Total" payment method.
+ */
+function uc_payment_method_zero_total($op, &$arg1, $silent = FALSE) {
+  global $user;
+
+  switch ($op) {
+    case 'cart-process':
+       if ($arg1->payment_method == 'zero_total') {
+         // Get the total based on the current order_total (which will not include tax, shipping, etc.)
+         // TODO: Configure whether or not to include shipping, taxes, etc
+         $total = $arg1->order_total;
+         $line_items = db_result(db_query("SELECT SUM(amount) FROM {uc_order_line_items} WHERE order_id = %d AND type <> 'gift_certificate'", $arg1->order_id));
+         $total += $line_items;
+
+         // Get all of the certificates for the current order's user
+         $certificates = uc_gift_certificate_total($arg1->uid);
+		 
+		 if(uc_gift_certificate_check_promo($arg1->uid,'Ruelala') == TRUE)
+			$certificates = 75;// Subu 8/25/2011 Ruelala
+		
+		 
+         // If their total certificates cover it, deduct enough certificates to cover the total.
+         if ($certificates >= $total) {
+           $certificates = $total;
+
+           uc_add_js('$(document).ready(function() {
+             if (window.set_line_item) {
+               set_line_item("gift_certificate", "'. t('Gift Certificates') .'", '. -$certificates .', 6);
+             }
+           });', 'inline');
+
+           // Find any current line items in the database and add or update as necessary
+           $result = db_query("SELECT line_item_id FROM {uc_order_line_items} WHERE order_id = %d AND type = 'gift_certificate'", $arg1->order_id);
+           if ($lid = db_result($result)) {
+             uc_order_update_line_item($lid, t('Gift Certificates'), -$certificates);
+           }
+           else {
+             uc_order_line_item_add($arg1->order_id, 'gift_certificate', t('Gift Certificates'), -$certificates);
+           }
+         }
+       }
+    break;
+
+    case 'order-submit':
+      if ($arg1->order_total > .01 && $arg1->payment_method == 'zero_total') {
+        $result[] = array(
+          'pass' => FALSE,
+          'message' => t("Your final order is not fully covered by your gift certificate amount.  Please go back and select a different method of payment.",
+            array('!total' => uc_currency_format($arg1->order_total))));
+        $_SESSION['expanded_panes'][] = 'payment';
+        return $result;
+      }
+
+    // Kick them out of Reviewing the order if their order total isn't covered completely by Certificates
+    case 'cart-review':
+      if ($arg1->order_total > .01 && $arg1->payment_method == 'zero_total') {
+        drupal_set_message(t("Your final order is not fully covered by your gift certificate amount.  Please select a different method of payment.",
+          array('!total' => uc_currency_format($arg1->order_total))), 'error');
+        drupal_goto('cart/checkout');
+      }
+      break;
+  }
+}
+
+/**
+ * Generate a random alphanum code
+ */
+function uc_gift_certificate_mKey($len = 12, $type = 'ALNUM')
+{
+    // Register the lower case alphabet array
+    $alpha = array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'l', 'm',
+                   'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
+
+    // Register the upper case alphabet array
+    $ALPHA = array('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M',
+                     'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
+
+    // Register the numeric array
+    $num = array('1', '2', '3', '4', '5', '6', '7', '8', '9');
+
+    // Initialize the keyVals array for use in the for loop
+    $keyVals = array();
+
+    // Initialize the key array to register each char
+    $key = array();
+
+    // Loop through the choices and register
+    // The choice to keyVals array
+    switch ($type)
+    {
+        case 'lower' :
+            $keyVals = $alpha;
+            break;
+        case 'upper' :
+            $keyVals = $ALPHA;
+            break;
+        case 'numeric' :
+            $keyVals = $num;
+            break;
+        case 'ALPHA' :
+            $keyVals = array_merge($alpha, $ALPHA);
+            break;
+        case 'ALNUM' :
+            $keyVals = array_merge($alpha, $ALPHA, $num);
+            break;
+    }
+
+    // Loop as many times as specified
+    // Register each value to the key array
+    for($i = 0; $i <= $len-1; $i++)
+    {
+        $r = rand(0,count($keyVals)-1);
+        $key[$i] = $keyVals[$r];
+    }
+
+    // Glue the key array into a string and return it
+    return join("", $key);
+}
+
+/**
+ * Implementation of hook_form_alter()
+ */
+function uc_gift_certificate_form_alter(&$form, &$form_state, $form_id) {
+   if ($form_id == 'uc_gift_certificate_settings') {
+    $form['certificate'] = array('#type' => 'fieldset', '#title' => t('Give Gift certificate'), '#weight' => 0);
+    $form['certificate']['certificate_register'] = array('#type' => 'textfield', 
+                                                   '#title' => t('Gift certificate amount for all users'), 
+                                                   '#default_value' => variable_get('certificate_register', 0), 
+                                                   '#description' => t('Gift certificate amount that a new user receives after registration.'));
+    
+  }
+
+
+ // Alter the checkout form to prepare it for our special JS.
+  if ($form_id == 'uc_cart_checkout_form' && isset($form['panes']['payment'])) {
+    drupal_add_js(drupal_get_path('module', 'uc_gift_certificate') .'/uc_gift_certificate.js');
+  }
+
+  // Check if it's an 'add product' form
+  if (strpos($form_id,'uc_product_add_to_cart_form') !== FALSE) {
+    // Iterate through all of the attributes
+
+    if (!$form["attributes"]) {
+      return;
+    }
+
+    foreach ($form["attributes"] as $key=>$value) {
+      // Attributes will have a numeric key. If you need to choose a
+      // specific attribute, you could match the ["#title"] parameter.
+
+      if (is_numeric($key)) {
+        //drupal_set_message('form["attributes"][$key]: '.print_r($form["attributes"][$key], true));
+        $attrib_title = $form["attributes"][$key]['#title'];
+
+        if ($attrib_title == "Recipient's Email Address") {
+          $form["attributes"][$key]['#required'] = TRUE;
+          //var_export($form["attributes"][$key]);die();
+          //uncomment below to automatically have the "message to recipient" attribute created for gift cert products
+          //$msg = array ( '#type' => 'textarea',
+            //'#title' => 'Message To Recipient',
+          // );
+          //$form["attributes"][] = $msg;
+        }
+
+        if ($attrib_title == "Message To Recipient") {
+          $form["attributes"][$key]['#type'] = 'textarea';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_form()
+ */
+function uc_gift_certificate_cert_code_form() {
+
+	global $user;
+
+	if ( $user->uid == 0) {
+
+		drupal_goto('user', 'destination=redeem');
+	}
+
+  $form['certificate_code'] = array(
+     '#type' => 'textfield',
+     '#required' => true,
+     '#title' => t('Enter your gift certificate code'),
+   '#description' => t('<div>Welcome to Style for Hire!  Please enter your gift certificate code. Its value will be credited to your account, and be immediately available for use towards your next purchase(s).</div>
+	<br /><div>The gift certificate code will not need to be re-entered at checkout - simply checkout as normal and select the "Use My Gift Certificate" payment option.</div>'),
+  );
+ /* $form['cancel'] = array(
+     '#type' => 'item',
+     '#value' => l(t('Cancel'), ''),
+     '#weight' => 20,
+  );*/
+  $form['op'] = array('#type' => 'submit',
+     '#value' => t('Submit'),
+     '#weight' => 21,
+  );
+  return $form;
+}
+
+/**
+ * Hook_submit()
+ */
+function uc_gift_certificate_cert_code_form_submit($form, &$form_state) {
+  global $user;
+
+  if ($form_state['values']['certificate_code'] != '') {
+    $num_rows = db_result(db_query("SELECT COUNT(*) FROM {uc_gift_certificates} WHERE cert_code  = '%s'", $form_state['values']['certificate_code']));
+    if ($num_rows > 0) {
+      $cert = db_fetch_object(db_query("SELECT * FROM {uc_gift_certificates} WHERE cert_code  = '%s'", $form_state['values']['certificate_code']));
+
+      if (db_query("UPDATE {uc_gift_certificates} SET user_id = %d WHERE certificate_id = %d", $user->uid, $cert->certificate_id)) {
+        $message = "";
+      }
+      else {
+        $message = "ERROR";
+      }
+      drupal_set_message(t("Added certificate %cert_code worth !value", array('%cert_code' => $form_state['values']['certificate_code'], '!value' => $cert->value)));
+    }
+    else {
+      drupal_set_message(t("There is no certificate with the code %cert_code", array('%cert_code' => $form_state['values']['certificate_code'])), 'error');
+    }
+  }
+}
+
+/**
+ * Implementation of hook_block()
+ */
+function uc_gift_certificate_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+
+    case 'list':
+      $blocks[0]['info'] = t('Gift Certificate');
+      return $blocks;
+
+    case 'configure':
+      $form['uc_gift_certificate_block'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Content for the gift certificate block (the variable !value is the gift certificate amount)'),
+        '#default_value' => variable_get('uc_gift_certificate_block', t('You have <strong>!value</strong> worth of gift certificates. They can be redeemed when you check out.')),
+      );
+      return $form;
+
+    case 'save':
+      variable_set('uc_gift_certificate_block', $edit['uc_gift_certificate_block']);
+      break;
+
+    case 'view':
+      global $user;
+      $total = uc_gift_certificate_total($user->uid);
+
+      if ($total) {
+        $block['subject'] = t('Gift Certificate');
+        $block['content'] = t(variable_get('uc_gift_certificate_block', t('You have <strong>!value</strong> worth of gift certificates. They can be redeemed when you check out.')), array('!value' => uc_currency_format($total)));
+      }
+      return $block;
+  }
+}
+
+/**
+ * Apply the Certificate at checkout - covers the entire order.
+ */
+function uc_gift_certificate_apply($code = NULL) {
+
+  $coupon = uc_gift_certificate_validate($code);
+  if (!$coupon->valid) {
+    $coupon->message = t('Sorry, the certificate '.$code.' is invalid or cannot be applied to this order.');
+  }
+
+  drupal_set_header("Content-Type: text/javascript; charset=utf-8");
+  print drupal_to_js($coupon);
+  exit();
+}
+
+/**
+ * Apply the Certificate at checkout as a DISCOUNT
+ */
+function uc_gift_certificate_apply_discount($user = NULL) {
+  $coupon = uc_gift_certificate_validate_user($user);
+
+  if (!$coupon->valid) {
+    $coupon->message = t('Sorry, no certificates can be applied to this order.');
+  }
+
+  drupal_set_header("Content-Type: text/javascript; charset=utf-8");
+  print drupal_to_js($coupon);
+  exit();
+}
+
+/**
+ * Validate a specific Gift Certificate code.
+ */
+function uc_gift_certificate_validate($code) {
+  //  Get the code passed in from the coupon code form
+  $today = time();
+
+  // Grab the Certificate based on its code
+  $coupon_data = db_fetch_object(db_query("SELECT * FROM {uc_gift_certificates} WHERE cert_code = '%s'", $code));
+
+  if ($coupon_data) {
+    $coupon_result->valid = TRUE;
+
+    foreach (uc_cart_get_contents() as $item) {
+      $cart_total += $item->price * $item->qty;
+    }
+
+    // If the user_id == 0, then this is a blank certificate at the moment. (Printed card instead of email certificate)
+    if ($coupon_data->user_id == 0) {
+      global $user;
+
+      // This might not work for stores that are running Anonymous checkout. In that case, should we specify an email address?
+      update_certificate_user($user->uid, $code);
+    }
+
+    $coupon_result->valid = TRUE;
+    $coupon_result->cert_code = $coupon_data->cert_code;
+    $coupon_result->certificate_id = $coupon_data->certificate_id;
+    $coupon_result->title = t('Gift Certificate: @code', array('@code' => $coupon_data->cert_code));
+    $coupon_result->amount = $coupon_data->value;
+
+    // Find out if our certificate amount is equal to or more than the current total.
+    if ($coupon_result->amount >= $cart_total) {
+      $coupon_result->amount = $cart_total;
+    }
+  }
+  else {
+    // The coupon was not found, inactive, or is expired in the list of coupons
+    $coupon_result->valid = FALSE;
+  }
+  return $coupon_result;
+}
+
+function uc_gift_certificate_validate_cart($userid, $order_id) {
+  //drupal_set_message('Got user '.$userid.' and order '.$order_id);
+  // the following query grabs the sum of available Certificates for this specific user.
+  $coupon_data = db_fetch_object(db_query("SELECT *, SUM(value) AS value FROM {uc_gift_certificates} WHERE user_id = %d", $userid));
+
+  if ($coupon_data) {
+    $coupon_result->valid = TRUE;
+
+    $cart_total = db_query("SELECT SUM(amount) FROM {uc_order_line_items} WHERE order_id = %d AND type <> 'gift_certificate'", $order_id);
+
+    $coupon_result->valid = TRUE;
+    $coupon_result->total = $coupon_data->amount;
+
+    $coupon_result->amount = $coupon_data->amount;
+
+    // Find out if our certificate amount is equal to or more than the current total.
+    if ($coupon_result->amount >= $cart_total) {
+      $coupon_result->amount = $cart_total;
+    }
+    $coupon_result->title = t('Gift Certificates - Discount: @code', array('@code' => $coupon_result->amount));
+  }
+  else {
+    // The coupon was not found, inactive, or is expired in the list of coupons
+    $coupon_result->valid = FALSE;
+  }
+  return $coupon_result;
+}
+
+/**
+ * Load a gift certificate
+ */
+function uc_gift_certificate_load($id) {
+  $object = db_fetch_object(db_query("SELECT * FROM {uc_gift_certificates} WHERE certificate_id = %d", $id));
+  if ($object == '') {
+    drupal_set_message(t("The gift certificate !val does not exist."), array('!val' => $id));
+    //drupal_goto('');
+  }
+  return $object;
+}
+
+/**
+ * Find the total amount of gift certificates from a userid
+ */
+function uc_gift_certificate_total($uid) {
+  $cert_array = db_query("SELECT * FROM {uc_gift_certificates} WHERE user_id = %d", $uid);
+  $total = 0;
+  while ($cert = db_fetch_object($cert_array)) {
+    $total += $cert->value;
+  }
+  return $total;
+}
+
+/**
+ * Settings for gift certificate text field options
+ */
+function uc_gift_certificate_get_setting_defaults($setting) {
+  switch ($setting) {
+    case 'uc_gc_email_new_user_subject':
+      return 'You have received a gift certificate';
+    case 'uc_gc_email_format':
+      return 'plain';
+    case 'uc_gc_email_new_user_body':
+      return "Good news! \r\n\r\nYou have just received a gift certificate for !gift_certificate_value to be used on your next purchase at !site. \r\n\r\nA personal message:\r\n!gift_certificate_message\r\n\r\nAn account has been created for you at !site and you may now log in to !login_uri using the following username and password:\r\n\r\nusername: !username\r\npassword: !password\r\n\r\nYou may also log in by clicking on this link or copying and pasting it in your browser:\r\n\r\n!login_url\r\n\r\nThis is a one-time login, so it can be used only once. After logging in, you will be redirected to !edit_uri so you can change your password.\r\n\r\nHappy shopping!";
+    case 'uc_gc_email_subject':
+      return 'You have been sent a gift certificate';
+    case 'uc_gc_email_body':
+      return "Good news! \r\n\r\nYou have just received a gift certificate for !gift_certificate_value to be used on your next purchase at !site. \r\n\r\nA personal message:\r\n!gift_certificate_message\r\n\r\n\r\nHappy shopping!";
+    case 'uc_gc_pane_msg':
+      return '<p><strong>You have !tot worth of gift certificates. This amount will be automatically applied to your order total. PLEASE NOTE: If the value of your gift certificates, !tot, covers your order total, please select the USE MY GIFT CERTIFICATE payment option below. This avoids the need to enter credit card information </strong></p>';
+  }
+}
+
+
+/**
+ * Implementation of hook_action_info().
+ */
+function uc_gift_certificate_action_info() {
+  return array(
+    'uc_gift_certificate_give_certificate_action' => array(
+      'description' => t('Give certificate now'),
+      'type' => 'user',
+      'configurable' => FALSE,
+      'hooks' => array(
+        'user' => array('insert'),
+      )
+    )
+  );
+}
+
+/**
+ * Implementation of a Drupal action.
+ * Give certificate.
+ */
+function uc_gift_certificate_give_certificate_action(&$object, $context = array()) {
+
+  if (isset($object->uid)) {
+    $uid = $object->uid;
+  }
+  elseif (isset($context['uid'])) {
+    $uid = $context['uid'];
+  }
+  else {
+    global $user;
+    $uid = $user->uid;
+  }
+
+  $cert_code = uc_gift_certificate_mKey();
+  $query = db_query("INSERT INTO {uc_gift_certificates} (name, value, user_id) VALUES ('%s', '%s', %d)", 'Promo certificate', 
+                     variable_get('certificate_register', 0), $uid);
+
+  $certificate_id = db_last_insert_id('uc_gift_certificates', 'certificate_id');
+  $cert_code = $certificate_id."-".$cert_code;
+  db_query("UPDATE {uc_gift_certificates} SET cert_code = '%s' WHERE certificate_id = %d", $cert_code, $certificate_id);
+  //uc_order_comment_save($order->order_id, $user->uid, t('Added gift certificate !code worth !value.', array('!code' => $cert_code, '!value' => uc_currency_format($amount))), 'admin');
+                       
+
+}
+
+/**
+ * Subu 08/26/2011 Ruelala
+ Find the name of a gift certificates from a userid
+ */
+function uc_gift_certificate_check_promo($uid, $promo_name) {
+  $cert_name = db_query("SELECT name FROM {uc_gift_certificates} WHERE user_id = %d", $uid);
+  $promo_name = strtolower($promo_name);
+  uc_gift_certificate_debug($promo_name, ' PROMOTION supplied');
+  while ($name = db_result($cert_name)) {
+    $name = strtolower(substr($name,0,7));
+	uc_gift_certificate_debug($name,'promo certificate name');
+	uc_gift_certificate_debug(strcmp($name,$promo_name),'string comparison');
+	if(strcmp($name,$promo_name) == 0){
+		uc_gift_certificate_debug('TRUE','return');
+		return TRUE;
+		}
+  }
+  uc_gift_certificate_debug('FALSE','return');
+  return FALSE;
+} /* Subu 08/26/2011 Ruelala End*/
+
+function uc_gift_certificate_debug($data, $label = NULL) {
+ if ($label) {
+    $out = $label . ': ' . $data;
+  }
+  else {
+    $out = $data;
+  }
+  $out .= "\n";
+
+  $file = './styleforhire_debug.txt';
+  if (file_put_contents($file, $out, FILE_APPEND) === FALSE) {
+    drupal_set_message(t('The file could not be written.'), 'error');
+    return FALSE;
+  }
+}
