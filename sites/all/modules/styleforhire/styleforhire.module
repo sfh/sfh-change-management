@@ -302,7 +302,9 @@ function styleforhire_display_press()
 	
 	return $Press;
 }
-
+/* 
+ * @return Returns press content
+ */
 function getEconomicCulture()
 {
 	$limit=5;

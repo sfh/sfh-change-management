@@ -5,3 +5,9 @@ sites/*/settings*.php
 sites/*/files
 sites/*/private
 .ftpquota
+.metadata
+.buildpath
+.project
+.settings
+sfh-prod.komodoproject
+
