@@ -558,8 +558,8 @@ function styleforhire_cron() {
 		WHERE n.type='appointment' AND
 				cta.field_apt_status_value='confirmed' AND
 				n.status=1 AND
-				cta.field_apt_date_value < %d
-	", time());
+				cta.field_apt_date_value BETWEEN %d AND %d
+	", time() - 5*24*60*60, time());
 
 
 	while($row = db_fetch_array($result)) {
@@ -574,37 +574,50 @@ function styleforhire_cron() {
 
 		if ( $result2 === FALSE) {
 
-			$trigger_dm_alert = true;
+			$trigger_dm_alert = TRUE;
 		}
-
+		$notes = $row['stylist_first_name'] . ' ' . $row['stylist_last_name'] .
+			' did not complete her ' .
+			l('styling appointment', 'node/' . $row['nid'], array('absolute' => TRUE)) .
+			' yesterday with '.$row['first_name'] . ' '  .
+			$row['last_name'] . '.';
 		db_query("
-			
-			INSERT IGNORE INTO dm_alerts
+			 INSERT INTO {dm_alerts}
 			(timestamp, uid, dm_uid, nid, alert, type, alert_count)
 			VALUES (%d, %d, 0, %d, '%s', 1, 0)
-		", time(), $row['uid'],  $row['nid'], $row['stylist_first_name'].' '.$row['stylist_last_name'].' did not complete her '.l('styling appointment', 'node/'.$row['nid']).' yesterday with '.$row['first_name'].' '.$row['last_name'].'.');
-
-	}
-
-	if ( $trigger_dm_alert === TRUE) {
-
-		$result = db_query('SELECT u.uid FROM users u JOIN users_roles ur ON u.uid=ur.uid WHERE ur.rid=%d', 7);
-
-		while($row = db_fetch_array($result)) {
-
-			$user = user_load(array('uid' => $row['uid']));			
-
-			styleforhire_build_email(
-				'new_alert',
-				$user->mail,
-				$row['uid']
+			",
+			time(),
+			$row['uid'],
+			$row['nid'],
+			$row['stylist_first_name'] . ' ' . $row['stylist_last_name'] .
+			' did not complete her ' .
+			l('styling appointment', 'node/' . $row['nid']) .
+			' yesterday with '.$row['first_name'] . ' '  .
+			$row['last_name'] . '.');
+		
+		$params = array(
+				'subject' => "Alert - Stylist hasn't completed her appointment",
+				'body' => $notes,
 			);
+		if ( $trigger_dm_alert === TRUE) {
+			$result = db_query('SELECT u.uid FROM users u JOIN users_roles ur ON u.uid=ur.uid WHERE ur.rid=%d', 7);
+			while($row = db_fetch_array($result)) {
+				$user = user_load(array('uid' => $row['uid']));			
+				/*styleforhire_build_email(
+					'new_alert',
+					$user->mail,
+					$row['uid']
+				);*/
+				$message = drupal_mail(
+					'styleforhire',
+					'email_trigger',
+					$user->mail,
+					language_default(),
+					$params
+				);
+			}
 		}
 	}
-
-
-	//exit;
-
 	$result = db_query("
 		
 		SELECT DISTINCT n.nid,
@@ -834,6 +847,7 @@ function styleforhire_build_email($email_template, $email_to, $id, $id2 = NULL) 
 
 function styleforhire_mail($key, &$message, $params)
 {
+	$message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
 	$message['subject'] = $params['subject'];
 	$message['body'] = $params['body'];
 	switch($key) {
