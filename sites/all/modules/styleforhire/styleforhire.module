@@ -513,11 +513,11 @@ function styleforhire_cron() {
 		}
 		else{
 			$alert_count = (int)$result2;
-			styleforhire_debug($alert_count,"Alert count in else");
+			//styleforhire_debug($alert_count,"Alert count in else");
 			$delta = (time() - (int)$row['created'])/(24*60*60);
-			styleforhire_debug($delta, "DELTA");
-			styleforhire_debug(time(), "CURRENT TIME");
-			styleforhire_debug((int)$row['created'], "CREATED TIME");
+			//styleforhire_debug($delta, "DELTA");
+			//styleforhire_debug(time(), "CURRENT TIME");
+			//styleforhire_debug((int)$row['created'], "CREATED TIME");
 			if($alert_count < (int)$delta){
 				styleforhire_debug("set $alertcount +=1", "Send email");
 				db_query("UPDATE dm_alerts SET alert_count=%d where nid=%d", ++$alert_count, $row['nid']);
@@ -575,13 +575,8 @@ function styleforhire_cron() {
 		if ( $result2 === FALSE) {
 
 			$trigger_dm_alert = TRUE;
-		}
-		$notes = $row['stylist_first_name'] . ' ' . $row['stylist_last_name'] .
-			' did not complete her ' .
-			l('styling appointment', 'node/' . $row['nid'], array('absolute' => TRUE)) .
-			' yesterday with '.$row['first_name'] . ' '  .
-			$row['last_name'] . '.';
-		db_query("
+			
+			db_query("
 			 INSERT INTO {dm_alerts}
 			(timestamp, uid, dm_uid, nid, alert, type, alert_count)
 			VALUES (%d, %d, 0, %d, '%s', 1, 0)
@@ -594,6 +589,13 @@ function styleforhire_cron() {
 			l('styling appointment', 'node/' . $row['nid']) .
 			' yesterday with '.$row['first_name'] . ' '  .
 			$row['last_name'] . '.');
+		}
+		$notes = $row['stylist_first_name'] . ' ' . $row['stylist_last_name'] .
+			' did not complete her ' .
+			l('styling appointment', 'node/' . $row['nid'], array('absolute' => TRUE)) .
+			' yesterday with '.$row['first_name'] . ' '  .
+			$row['last_name'] . '.';
+		
 		
 		$params = array(
 				'subject' => "Alert - Stylist hasn't completed her appointment",
@@ -847,7 +849,11 @@ function styleforhire_build_email($email_template, $email_to, $id, $id2 = NULL) 
 
 function styleforhire_mail($key, &$message, $params)
 {
-	$message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+	// Setting the header content type as html prevents line-breaks and other formatting.
+	// This should be enabled in one of the feature improvements where we format all the
+	// emailes as html formatted emails.
+	//$message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+	
 	$message['subject'] = $params['subject'];
 	$message['body'] = $params['body'];
 	switch($key) {
