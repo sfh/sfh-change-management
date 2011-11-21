@@ -8893,7 +8893,10 @@ function styleforhire_nodeapi(&$node, $op, $arg3, $arg4) {
 
 		global $user;
 		
-		if ( empty($user->roles) OR isset($user->roles[4])) {
+		if ( empty($user->roles) OR
+		    isset($user->roles[4]) OR //if client
+		    isset($user->roles[3]) OR //if stylist
+		    isset($user->roles[1])) { //if anonymous user
 
 			drupal_access_denied();
 			exit;
